@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import sys
+import math
 import pprint
 
 def spiral(maxval):
@@ -41,7 +42,7 @@ def spiralgen():
 class Matrix(object):
 
     def __init__(self, size):
-        dim=size/2
+        dim=int(math.sqrt(size))+2
         line=[0 for x in xrange(dim)]
         self.matrix=[list(line) for x in xrange(dim)]
         self.center_x = self.center_y = dim/2
@@ -82,7 +83,9 @@ if __name__ == '__main__':
         import doctest
         doctest.testmod()
     else:
-        input=[]
-        with open(sys.argv[1]) as f:
-            print sumsum(*[[int(c) for c in r.split()] for r in f.readlines()])
-    
+        val=int(sys.argv[1])
+        s=spiral(val)
+        # print s
+        p = s.find(val)
+        print p
+        print abs(p[0]) + abs(p[1])
