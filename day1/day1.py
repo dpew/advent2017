@@ -15,12 +15,9 @@ def sumdigits(*args):
         3
     '''
     sum=0
-    #every=list(args)
-    #every.append(args[0])
     if len(args) < 1:
         return 0
 
-    print args
     last=int(args[-1])
     for d in args:
         d = int(d)
@@ -30,11 +27,33 @@ def sumdigits(*args):
     return sum
 
 
+def sumdigits2(*args):
+    '''
+        >>> sumdigits2(1,2,1,2)
+        6
+        >>> sumdigits2(1,2,2,1)
+        0
+        >>> sumdigits2(1,2,3,4,2,5)
+        4
+        >>> sumdigits2(1,2,3,1,2,3)
+        12
+        >>> sumdigits2(1,2,1,3,1,4,1,5)
+        4
+    '''
+
+    sum=0
+    if len(args) < 1:
+        return 0
+
+    offset=len(args)/2
+    for i in xrange(offset):
+        sum += 2 * int(args[i]) if args[i] == args[i+offset] else 0
+    return sum
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-
-    #print sumdigits(*sys.argv[1:])
-    print sumdigits(*sys.argv[1])
+    if len(sys.argv) <= 1:
+        import doctest
+        doctest.testmod()
+    else:
+        print sumdigits2(*sys.argv[1])
     
