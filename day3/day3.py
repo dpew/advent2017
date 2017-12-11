@@ -6,26 +6,37 @@ def spiral(maxval):
     '''
         >>> spiral(10)
         [[0, 0, 0, 0, 0],
-         [0, 5, 4  3, 0] 
-         [0, 6, 1, 2, 0]
-         [0, 7, 8, 9, 10]
+         [0, 5, 4, 3, 0],
+         [0, 6, 1, 2, 0],
+         [0, 7, 8, 9, 10],
          [0, 0, 0, 0, 0]]
     '''
     m = Matrix(maxval)
-    m.set(0, 0, 1)
-    m.set(1, 0, 2)
-    m.set(1, 1, 3)
-    m.set(0, 1, 4)
-
+    i = 0
+    for p in spiralgen():
+        i += 1
+        if i > maxval:
+            return m
+        m.set(p[0], p[1], i)
+    
     return m
 
-    #dim=maxval/2
-    #line=[0 for x in xrange(dim)]
-    #matrix=[list(line) for x in xrange(dim)]
-    #center=[dim/2, dim/2]
-    #dx=1
-    #dy=0 
-    #return matrix
+
+def spiralgen():
+    x = 0
+    y = 0
+    yield 0, 0
+    delta = 1
+    direction = 1
+    while True:
+        for i in xrange(delta):
+           x += direction
+           yield x, y
+        for i in xrange(delta):
+           y += direction
+           yield x, y
+        delta += 1
+        direction = -direction
 
 class Matrix(object):
 
