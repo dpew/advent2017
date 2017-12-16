@@ -56,6 +56,17 @@ class Dance(object):
     def __repr__(self):
         return repr(''.join(self.programs))
 
+    def __eq__(self, other):
+        '''
+            >>> Dance('ab') == Dance('ab')
+            True
+            >>> Dance('ab') == Dance('ba')
+            False
+            >>> Dance('abc') == Dance('bca').spin(1)
+            True
+        '''
+        return self.programs == other.programs
+
 
 
 if __name__ == '__main__':
@@ -63,14 +74,19 @@ if __name__ == '__main__':
         import doctest
         doctest.testmod()
     else:
-        d = Dance('abcdefghijklmnop')
-        #d = Dance('abcde')
-        for x in xrange(1000000000):
-            for m in sys.argv[1].split(','):
+        first='abcdefghijklmnop'
+        d = Dance(first)
+        d2 = Dance(first)
+        count=int(sys.argv[1])
+        for x in xrange(count % 60):
+            for m in sys.argv[2].split(','):
                 d.apply(m.strip())
-            if x % 1000 == 0:
-                sys.stdout.write('.')
-                sys.stdout.flush()
+            if d == d2:
+                print 'Match!', x, d, d2
+            if (x+1) % 60 == 0:
+                print 'Again!', x, d, d2
+#            if x % 58 == 0:
+#                print d
         
         print '------'
         print d
