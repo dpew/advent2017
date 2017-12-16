@@ -85,8 +85,13 @@ output(void) {
 
 int
 main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s programs moves [repeat]\n", argv[0]);
+        return 1;
+    }
     char **tokens = (char **)calloc(15000, sizeof(char *));
     char **tokptr = tokens;
+    long repeat = argc > 3 ? atoll(argv[3]) : 1;
     programs = strdup(argv[1]);
     bufsize = strlen(programs);
     char *pch = strtok(argv[2], ",");
@@ -96,8 +101,10 @@ main(int argc, char *argv[]) {
     }
     *tokptr++ = NULL;
 
-    for (tokptr = tokens; *tokptr != NULL; tokptr++) {
-        apply(*tokptr);
+    for (long i; i < repeat; i++) {
+        for (tokptr = tokens; *tokptr != NULL; tokptr++) {
+            apply(*tokptr);
+        }
     }
 
     output();
