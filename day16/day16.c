@@ -29,11 +29,19 @@ spin(int swap) {
 void
 partner(char x, char y) {
     int i;
-    for (i = 0; i < bufsize; i++) {
-        if (programs[i] == x)
+    int matches = 0;
+    for (i = 0; i < bufsize && matches < 2; i++) {
+        if (programs[i] == x) {
             programs[i] = y;
-        if (programs[i] == y)
+            matches ++;
+            continue;
+        }
+
+        if (programs[i] == y) {
             programs[i] = x;
+            matches ++;
+            continue;
+        }
     }
 }
 
@@ -48,7 +56,7 @@ apply(char *code) {
                  exchange(atoi(a1), atoi(a2));
                  break;
        case 'p': a2 = split(a1);
-                 partner(a1[0], a2[1]);
+                 partner(a1[0], a2[0]);
                  break;
     }
 }
@@ -77,17 +85,18 @@ output(void) {
 
 int
 main(int argc, char *argv[]) {
-    char **tokens = (char **)calloc(5000, sizeof(char *));
+    char **tokens = (char **)calloc(15000, sizeof(char *));
     char **tokptr = tokens;
     programs = strdup(argv[1]);
     bufsize = strlen(programs);
     char *pch = strtok(argv[2], ",");
     while (pch != NULL) {
        *tokptr++ = strdup(pch);
+       pch = strtok(NULL, ",");
     }
-    *tokptr = NULL;
+    *tokptr++ = NULL;
 
-    for (tokptr = tokens; tokptr != NULL; tokptr++) {
+    for (tokptr = tokens; *tokptr != NULL; tokptr++) {
         apply(*tokptr);
     }
 
