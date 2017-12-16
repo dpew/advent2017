@@ -6,6 +6,7 @@
 int bufsize = 0;
 char *programs;
 int offset = 0;
+static unsigned char *lookup;
 
 char *split(char *);
 
@@ -15,9 +16,11 @@ exchange(int x, int y) {
     int x2, y2;
     x2 = (x + offset) % bufsize;
     y2 = (y + offset) % bufsize;
-    char t = programs[x2];
-    programs[x2] = programs[y2];
-    programs[y2] = t;
+    char yc = programs[x2];
+    char xc = programs[x2] = programs[y2];
+    programs[y2] = yc;
+    lookup[yc] = y2;
+    lookup[xc] = x2;
 }
 
 void
@@ -28,44 +31,61 @@ spin(int swap) {
 
 void
 partner(char x, char y) {
-    int i;
-    int matches = 0;
-    for (i = 0; i < bufsize && matches < 2; i++) {
-        if (programs[i] == x) {
-            programs[i] = y;
-            matches ++;
-            continue;
-        }
-
-        if (programs[i] == y) {
-            programs[i] = x;
-            matches ++;
-            continue;
-        }
-    }
+    int y2 = lookup[x];
+    int x2 = lookup[y];
+    programs[y2] = y;
+    programs[x2] = x;
+    lookup[x] = x2;
+    lookup[y] = y2;
 }
 
 void
 apply(char *code) {
-    char *a1 = code+1;
-    char *a2;
     switch(code[0]) {
-       case 's': spin(atoi(a1));
+       case 's': spin(code[1]);
                  break;
-       case 'x': a2 = split(a1);
-                 exchange(atoi(a1), atoi(a2));
+       case 'x': exchange(code[1], code[2]);
                  break;
-       case 'p': a2 = split(a1);
-                 partner(a1[0], a2[0]);
+       case 'p': partner(code[1], code[2]);
                  break;
     }
 }
+
+char *
+to_code(char *command) {
+    char *code = malloc(4);
+    code[0] = command[0];
+    code[3] = 0;
+    switch (command[0]) {
+        case 's':
+            code[1] = (char)atoi(command+1);
+            break;
+        case 'x':
+            code[1] = (char)atoi(command+1);
+            code[2] = (char)atoi(split(command+1));
+            break;
+        case 'p':
+            code[1] = command[1];
+            code[2] = split(command+1)[0];
+            break;
+    }
+    return code;
+}
+
 
 char *
 split(char *str) {
     while (*str != '/')
         str++;
     return str+1;
+}
+
+void
+init_lookup(void) {
+    lookup = (unsigned char *)malloc(256);
+    for (int i = 0; i < bufsize; i++) {
+        lookup[programs[i]] = i;
+    }
 }
 
 void 
@@ -94,9 +114,10 @@ main(int argc, char *argv[]) {
     long repeat = argc > 3 ? atoll(argv[3]) : 1;
     programs = strdup(argv[1]);
     bufsize = strlen(programs);
+    init_lookup();
     char *pch = strtok(argv[2], ",");
     while (pch != NULL) {
-       *tokptr++ = strdup(pch);
+       *tokptr++ = to_code(strdup(pch));
        pch = strtok(NULL, ",");
     }
     *tokptr++ = NULL;
@@ -110,5 +131,3 @@ main(int argc, char *argv[]) {
     output();
     return 0;
 }
-    
-    
