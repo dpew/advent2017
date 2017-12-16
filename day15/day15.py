@@ -4,11 +4,12 @@ import sys
 divisor=2147483647
 twobytes=255 + 255 * 256
 
-def generate(start, factor):
+def generate(start, factor, multiple):
     val=start
     while True:
         val=int((val * factor) % divisor)
-        yield val
+        if val % multiple == 0:
+            yield val
 
 def judge(count, iterable1, iterable2):
     matches=0
@@ -26,4 +27,4 @@ if __name__ == '__main__':
     else:
         input1=int(sys.argv[2]) if len(sys.argv) > 3 else 1092455
         input2=int(sys.argv[3]) if len(sys.argv) > 3 else 430625591
-        print judge(int(sys.argv[1]), generate(input1, 16807), generate(input2, 48271))
+        print judge(int(sys.argv[1]), generate(input1, 16807, 4), generate(input2, 48271, 8))
