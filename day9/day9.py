@@ -28,7 +28,9 @@ class Group(object):
         return "{%s}" % (','.join(repr(c) for c in self.children),)
 
 
+garbage_chars=0
 def parse(iterable):
+    global garbage_chars
     is_garbage = False
     is_bang = False
     for c in iterable:
@@ -41,6 +43,8 @@ def parse(iterable):
         if is_garbage:
             if c == '>':
                 is_garbage = False
+            else:
+                garbage_chars += 1
             continue
         if c == '<':
            is_garbage = True
@@ -48,9 +52,10 @@ def parse(iterable):
         yield c
 
 def process(line):
+    global garbage_chars
     line = line.strip()
+    garbage_chars = 0
     top = g = None
-    print 'LINE', ''.join(parse(line))
     for c in parse(line):
         if c == '{':
             if not top:
@@ -61,7 +66,7 @@ def process(line):
                 g = child
         elif c == '}':
             g = g.parent
-    print line, top, top.total()
+    print line, top, top.total() if top else None, garbage_chars
 
 with open(sys.argv[1]) as f:
     for line in f.readlines():
