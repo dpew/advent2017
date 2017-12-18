@@ -1,0 +1,3 @@
+
+CFLAGS=-O9
+#CFLAGS=-g
