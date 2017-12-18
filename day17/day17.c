@@ -48,6 +48,9 @@ main(int argc, char *argv[]) {
     for (int i = 1; i <= count; i++) {
         current = skip(current, skipval);
         insert(current, i);
+        if (i % 100000 == 0) {
+            printf("Cir %d %d\n", circular->val, circular->next->val);
+        }
     }
 
     // Find and print
