@@ -21,7 +21,8 @@ class CircBuf(object):
 
 
 c = CircBuf(377)
-for x in xrange(1, 2018):
+for x in xrange(1, int(5e5)+1):
     c.add(x)
 
-print c.get(c.pos + 1)
+idx = c.buffer.index(0)
+print c.get(idx), c.get(idx + 1)
