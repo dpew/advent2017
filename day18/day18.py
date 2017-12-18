@@ -2,13 +2,16 @@
 
 import sys
 import re
+from Queue import Queue
 
 
 class Cpu(object):
-    def __init__(self, name):
+    def __init__(self, name, cpu=None):
         self.name = name
-        self.rcv = None
         self.registers={}
+        self.sndcount = 0
+        self.sndcpu = cpu
+        self.queue = Queue()
 
     def getreg(self, name):
         if name is None:
@@ -26,6 +29,10 @@ class Cpu(object):
             return 0
         
 
+    def snd(self, val):
+        self.queue.put(val)
+  
+
     def oper(self, oper, val1, val2):
         v = self.getreg(val2)
         self.getreg(val1)
@@ -37,7 +44,8 @@ class Cpu(object):
            self.registers[val1] *= v
            return 1
         if oper == 'snd':
-           self.rcv = self.registers[val1]
+           self.sndcpu.snd(self.getreg(val1))
+           self.sndcount += 1
            return 1
         if oper == 'set':
            self.registers[val1] = v
@@ -46,18 +54,20 @@ class Cpu(object):
            self.registers[val1] = self.registers[val1] % v
            return 1
         if oper == 'rcv':
-           if self.registers[val1] != 0:
-               return None
+           if self.queue.empty():
+               return 0
+           self.registers[val1] = self.queue.get()
            return 1
         if oper == 'jgz':
-           if self.registers[val1] > 0:
+           if self.getreg(val1) > 0:
                return v
            return 1
          
         raise ValueError("Bad oper %s" % (oper,))
+
         
     def __repr__(self):
-        return "%s: %s %s" % (self.name, self.rcv, self.registers)
+        return "%s: %s %s" % (self.name, self.sndcount, self.registers)
 
 
 maxval=0
@@ -65,19 +75,27 @@ with open(sys.argv[1]) as f:
    lines = [ l.strip().split() for l in f.readlines() ]
 
 found=False
-idx = 0
-c1 = Cpu("1")
-while not found:
-    print lines[idx]
-    try:
-        val = lines[idx][2]
-    except IndexError:
-        val = None
-    nxt = c1.oper(lines[idx][0], lines[idx][1], val)
-    print c1
-    if nxt is None:
-        found = True
-    else:
-        idx += nxt
+idx0 = 0
+idx1 = 0
+c0 = Cpu("0")
+c1 = Cpu("1", c0)
+c0.sndcpu = c1
+c0.oper('set', 'p', '0')
+c1.oper('set', 'p', '1')
 
-print c1.rcv
+def getl(line, idx):
+    try:
+        return line[idx]
+    except IndexError:
+        return None
+    
+while True:
+    nxt0 = c0.oper(lines[idx0][0], lines[idx0][1], getl(lines[idx0], 2))
+    nxt1 = c1.oper(lines[idx1][0], lines[idx1][1], getl(lines[idx1], 2))
+    if nxt0 == 0 and nxt1 == 0:
+        break
+    # print c0, c1
+    idx0 += nxt0
+    idx1 += nxt1
+
+print "C0", c0.sndcount, "C1", c1.sndcount
