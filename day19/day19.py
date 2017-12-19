@@ -15,6 +15,8 @@ class Tron(object):
         self.grid = grid
         self.width = width
         self.height = height
+        self.seen = set()
+        self.steps = 0
 
     def getgrid(self, pos):
         try: 
@@ -26,28 +28,40 @@ class Tron(object):
         return (self.pos[0] + direction[0], self.pos[1] + direction[1])
 
     def next(self):
+        self.steps += 1
         self.pos = self.addpos(self.direction)
         if (self.pos[0] > self.width or self.pos[0] < 0):
             return False
         if (self.pos[1] > self.height or self.pos[1] < 0):
             return False
         c = self.getgrid(self.pos)
-        print c, self.pos
+        print c, self.pos, self.steps
         if c == '+':
+            if self.pos in self.seen:
+                raise ValueError("Seen %s %s" % (self.pos,self.direction))
+            self.seen.add(self.pos)
             self.direction = self.newdirection(self.direction)
         elif c in ALPHA: 
             print 'GOT', c
+        elif c == ' ':
+            return False
         return True
          
     def newdirection(self, curdirection):
-        for d in DIRECTIONS:
-            if d[0] == curdirection[0] and d[1] == curdirection[1]:
-                continue
-            if d[0] == -curdirection[0] and d[1] == -curdirection[1]:
-                continue
-            if self.getgrid(self.addpos(d)) != ' ':
-                return d
-        raise ValueError("No direction")
+        if curdirection[0] == 0:
+            if self.getgrid(self.addpos((-1,0))) != ' ':
+                return (-1, 0)
+            elif self.getgrid(self.addpos((1,0))) != ' ':
+                return (1, 0)
+            else:
+                raise ValueError("No direction %s" % (self.pos,))
+        else:
+            if self.getgrid(self.addpos((0,-1))) != ' ':
+                return (0, -1)
+            elif self.getgrid(self.addpos((0,1))) != ' ':
+                return (0, 1)
+            else:
+                raise ValueError("No direction %s" % (self.pos,))
 
     def get(self, pos):
         return self.buffer[pos % len(self.buffer)]
