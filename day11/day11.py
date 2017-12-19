@@ -14,6 +14,22 @@ MAPVAL = {
 }
 
 
+class GridPos(object):
+    def __init__(self, x=0, y=0):
+        self.pos = [x, y]
+
+    def move(self, cmd):
+        return GridPos(self.pos[0] + MAPVAL[cmd][0],  self.pos[1] + MAPVAL[cmd][1])
+
+    def distance(self, pos):
+       return sqrt(((pos[0]-self.pos[0])**2) + ((pos[1]-self.pos[1])**2)) 
+
+    def __getitem__(self, idx):
+        return self.pos[idx]
+
+    def __repr__(self):
+        return repr(self.pos)
+
 def distance(moves):
     '''
         >>> distance('ne,ne,ne')
@@ -22,17 +38,34 @@ def distance(moves):
         0
         >>> distance('ne,ne,s,s')
         2
-        >>> distance('sw,sw,se,sw,sw')
+        >>> distance('se,sw,se,sw,sw')
         3
+        >>> distance('sw,sw,se,sw,sw')
+        4
         >>> distance('sw,nw,sw,nw,sw')
         5
     '''
-    pos = [0, 0]
+    start = pos = GridPos()
     for cmd in moves.split(','):
-        pos[0], pos[1] = pos[0] + MAPVAL[cmd][0], pos[1] + MAPVAL[cmd][1]
+        pos = pos.move(cmd)
 
-    print pos
-    return int(floor(sqrt((pos[0]**2) + (pos[1]**2)))) 
+    maxpos = pos
+    count = 0
+    #print pos    
+
+    # now use greedy algorith to get back
+    while pos.distance(start) > .01:
+        #print "Distance", pos.distance(start)
+        moves = [(x[0], pos.move(x[0]).distance(start)) for x in  MAPVAL.items()]
+        #print 'Moves', moves
+        cmd = min(moves, key=lambda x: x[1])
+        #print 'CMD', cmd
+
+        pos = pos.move(cmd[0])
+        #print 'New Position', pos
+        count += 1
+
+    return count
 
 
 if __name__ == '__main__':
