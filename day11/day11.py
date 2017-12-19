@@ -33,40 +33,41 @@ class GridPos(object):
 def distance(moves):
     '''
         >>> distance('ne,ne,ne')
-        3
+        (3, 3)
         >>> distance('ne,ne,sw,sw')
-        0
+        (0, 2)
         >>> distance('ne,ne,s,s')
-        2
+        (2, 2)
         >>> distance('se,sw,se,sw,sw')
-        3
+        (3, 3)
         >>> distance('sw,sw,se,sw,sw')
-        4
+        (4, 4)
         >>> distance('sw,nw,sw,nw,sw')
-        5
+        (5, 5)
     '''
     start = pos = GridPos()
+    maxdist = 0
     for cmd in moves.split(','):
         pos = pos.move(cmd)
+        maxdist = max(maxdist, move_distance(pos, start))
 
-    maxpos = pos
-    count = 0
-    #print pos    
+    return move_distance(pos, start), maxdist
 
+
+def move_distance(pos, start):
+    '''
+        Returns the number of moves it takes to return to start
+    '''
     # now use greedy algorith to get back
+    count = 0
     while pos.distance(start) > .01:
-        #print "Distance", pos.distance(start)
         moves = [(x[0], pos.move(x[0]).distance(start)) for x in  MAPVAL.items()]
-        #print 'Moves', moves
         cmd = min(moves, key=lambda x: x[1])
-        #print 'CMD', cmd
 
         pos = pos.move(cmd[0])
-        #print 'New Position', pos
         count += 1
 
     return count
-
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
