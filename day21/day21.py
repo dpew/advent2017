@@ -1,100 +1,84 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python 
 import sys
 import pprint
 import re
 import numpy as np
 
 
-class Grid(object):
+def addslash(gridstr):
+    if len(gridstr) == 4:
+       return gridstr[0:2] + '/' + gridstr[2:4]
+    elif len(gridstr) == 9:
+       return gridstr[0:3] + '/' + gridstr[3:6] + '/' + gridstr[6:9]
+    else:
+       return gridstr
 
-    def __init__(self, gridstr):
-      
-        #print [list(x) for x in gridstr.split('/')]
-        if isinstance(gridstr, basestring):
-            self.matrix = np.matrix([list(x) for x in gridstr.split('/')])
-        else:
-            self.matrix = gridstr
-        #self.grid = np.array(list(iterable))
-        #print "grid", self.grid
-        #print len(self.grid)
-        #self.grid = self.grid.reshape(len(self.grid)>>2, len(self.grid)>>2)
-        #self.grid = np.matrix(*args)
+def spin(gridstr):
+    gridstr = gridstr.replace('/', '')
+    if len(gridstr) == 9:
+        return addslash(''.join(gridstr[x] for x in [2, 5, 8, 1, 4, 7, 0, 3, 6]))
+    else:
+        return addslash(''.join(gridstr[x] for x in [1, 3, 0, 2]))
+        
 
-    def __repr__(self):
-        return "Grid(%s)" % (repr(self.matrix),)
+def flip(gridstr):
+    gridstr = gridstr.replace('/', '')
+    if len(gridstr) == 9:
+        return addslash(''.join(gridstr[x] for x in [2, 1, 0, 5, 4, 3, 8, 7, 6]))
+    else:
+        return addslash(''.join(gridstr[x] for x in [1, 0, 3, 2]))
 
-    def matches(self, grid):
-        '''
-            >>> g = Grid('../.#')
-            >>> g.matches(Grid('../.#'))
-            True
-            >>> g.matches(Grid('.#/..'))
-            True
-            >>> g.matches(Grid('../#.'))
-            True
-            >>> g.matches(Grid('../.#'))
-            True
-            >>> g.matches(Grid('../..'))
-            False
-            >>> Grid(".#./..#/###").matches(Grid(".#./..#/###"))
-            True
-            >>> Grid(".#./..#/###").matches(Grid(".#./#../###"))
-            True
-            >>> Grid(".#./..#/###").matches(Grid("#../#.#/##."))
-            True
-            >>> Grid(".#./..#/###").matches(Grid("###/..#/.#."))
-            True
-            >>> Grid(".#./..#/###").matches(Grid("#.#/..#/.#."))
-            False
-            >>> Grid(".#./..#/###").matches(Grid("#./.."))
-            False
-        '''
-        g = grid.matrix
-        if len(self.matrix) != len(grid.matrix):
-            return False
-        for x in xrange(4):
-            if (g == self.matrix).all():
-                return True
-            if (np.flip(g, 0) == self.matrix).all():
-                return True
-            g = np.rot90(g)
-        return False
+def spinflip(gridstr):
+    '''
+        >>> sorted(spinflip('../.#'))
+        ['#./..', '.#/..', '../#.', '../.#']
+        >>> sorted(spinflip('.#./..#/###'))
+        ['###/#../.#.', '###/..#/.#.', '##./#.#/#..', '#../#.#/##.', '.##/#.#/..#', '.#./#../###', '.#./..#/###', '..#/#.#/.##']
+    '''
+    d=[]
+    for x in xrange(4):
+       d.append(gridstr)
+       d.append(flip(gridstr))
+       gridstr=spin(gridstr)
+       
+    return list(set(d))
+    
+def split(gridstr):
+    '''
+        >>> split('1234/5678/abcd/efgh')
+        ['12/56', '34/78', 'ab/ef', 'cd/gh']
+        >>> split('123/456/789')
+        ['123/456/789']
+    '''
+    gridstr2 = gridstr.replace('/','')
+    if len(gridstr2) >= 16:
+        return [ "/".join((gridstr2[0:2], gridstr2[4:6])),
+                 "/".join((gridstr2[2:4], gridstr2[6:8])),
+                 "/".join((gridstr2[8:10], gridstr2[12:14])),
+                 "/".join((gridstr2[10:12], gridstr2[14:16]))]
+    else:
+        return [ gridstr ]
 
-    def split(self):
-        if len(self.matrix) == 3:
-            yield Grid(self.matrix)
-        else:
-            yield Grid(self.matrix[np.ix_(np.arange(0, 2), np.arange(0, 2))])
-            yield Grid(self.matrix[np.ix_(np.arange(0, 2), np.arange(2, 4))])
-            yield Grid(self.matrix[np.ix_(np.arange(2, 4), np.arange(0, 2))])
-            yield Grid(self.matrix[np.ix_(np.arange(2, 4), np.arange(2, 4))])
-            
+mappings={}
+
 def parse_line(line):
     x=re.split("[ =>]* ", line.strip())
-    return Grid(x[0]), [g for g in Grid(x[1]).split()]
+    for perm in spinflip(x[0]):
+        mappings[perm] = x[1]
 
-def matchgrid(g):
-    for lk in lookup:
-        if lk[0].matches(g):
-            return lk[1]
-    raise ValueError("No match for %s" % (g,))
-
-import doctest
-doctest.testmod()
-
-
-lookup=[]
 with open(sys.argv[1]) as f:
     for l in f.readlines():
-        lookup.append(parse_line(l))
+        parse_line(l)
 
-grids = [ Grid(".#./..#/###") ]
+print spinflip('.#./..#/###')
+grids = [ ".#./..#/###" ]
 for x in xrange(5):
-    newgrids=[]
+    newgrids = []
     for g in grids:
-        print "G is ", g
-        newgrids.extend(matchgrid(g))
-    grids = newgrids
+        newgrids.extend(split(mappings[g]))
+    grids=newgrids
 
-print grids
+count=0
+for g in grids:
+    count+=g.count('#')
+print count
