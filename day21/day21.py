@@ -45,50 +45,55 @@ def spinflip(gridstr):
     
 def join(grids):
     '''
-        >>> join(['12/56'])
+        >>> join([['12/56']])
         '12/56'
-        >>> join(['12/56','34/78','ab/ef','cd/gh'])
+        >>> join([['12/56','34/78'], ['ab/ef','cd/gh']])
         '1234/5678/abcd/efgh'
-        >>> join(['12/56','34/78','ab/ef','cd/gh'])
+        >>> join([['12/56'], ['34/78'], ['ab/ef'], ['cd/gh']])
+        '12/56/34/78/ab/ef/cd/gh'
+        >>> join([['12/56','34/78'], ['ab/ef','cd/gh']])
         '1234/5678/abcd/efgh'
     '''
-    if len(grids) == 1:
-        return grids[0]
+    try:
+        matrix = np.vstack(np.hstack(s2m(c) for c in col) for col in grids)
+        return m2s(matrix)
+    except Exception, e:
+        print e
 
-    size=grids[0].count('/')+1
-    mlist = [np.matrix([list(elem) for elem in g.split('/')]) for g in grids]
-    size=len(mlist)/2
-    matrix = np.vstack([np.hstack(mlist[x*size:x*size+size]) for x in xrange(size)])
-    return '/'.join(''.join(m) for m in matrix.tolist())
+def p(m):
+    print "val", m
+    return m
     
 
 def split(gridstr):
     '''
-        >>> [x for x in split('1234/5678/abcd/efgh')]
-        ['12/56', '34/78', 'ab/ef', 'cd/gh']
-        >>> [x for x in split('123/456/789')]
-        ['123/456/789']
-        >>> [x for x in split('123456/789ABC/DEFGHI/JKLMNO/PQRSTU/VWXYZa')]
-        ['12/78', '34/9A', '56/BC', 'DE/JK', 'FG/LM', 'HI/NO', 'PQ/VW', 'RS/XY', 'TU/Za']
+        >>> split('1234/5678/abcd/efgh')
+        [['12/56', '34/78'], ['ab/ef', 'cd/gh']]
+        >>> split('123/456/789')
+        [['123/456/789']]
+        >>> split('123456/789ABC/DEFGHI/JKLMNO/PQRSTU/VWXYZa')
+        [['12/78', '34/9A', '56/BC'], ['DE/JK', 'FG/LM', 'HI/NO'], ['PQ/VW', 'RS/XY', 'TU/Za']]
+        >>> split('1234/5678')
+        [['12/56', '34/78']]
+        >>> split('12/34/56/78')
+        [['12/34'], ['56/78']]
     '''
-    gridstr2 = gridstr.replace('/','')
-
-
     matrix = s2m(gridstr)
-    if len(matrix) % 2 == 0:
-        divisor = 2
-    else:
-        divisor = 3
-    size = int(len(matrix)/divisor)
-    # print "MATRIX",  matrix
-    # print size, divisor
+    dim = np.shape(matrix)
 
+    rdiv = 3 if dim[0] % 2 else 2
+    cdiv = 3 if dim[1] % 2 else 2
+    #print "rdiv", rdiv, "cdiv", cdiv
 
-    for col in xrange(size):
-       for row in xrange(size):
-    #       print col*divisor,divisor*col+divisor, divisor*row,divisor*row+divisor
-           yield m2s(matrix[np.ix_(np.arange(col*divisor,col*divisor+divisor), np.arange(row*divisor,row*divisor+divisor))])
+    rmatrix = []
+    for row in xrange(dim[0]/rdiv):
+       cmatrix = []
+       for col in xrange(dim[1]/cdiv):
+ #        print rdiv*row,rdiv*row+rdiv, col*cdiv,cdiv*col+cdiv
+           cmatrix.append(m2s(matrix[np.ix_(np.arange(row*rdiv,row*rdiv+rdiv), np.arange(col*cdiv,col*cdiv+cdiv))]))
  #          yield '/'.join(''.join(m) for m in matrix[np.ix_(np.arange(col*divisor,col*divisor+col), np.arange(row*divisor,row*divisor*row))].tolist())
+       rmatrix.append(cmatrix)
+    return rmatrix
 
 def m2s(m):
     return '/'.join(''.join(m2) for m2 in m.tolist())
@@ -102,6 +107,11 @@ def s2m(s):
 
 
 mappings={}
+def map(grid):
+    try:
+        return mappings[grid]
+    except KeyError:
+        return grid
 
 def parse_line(line):
     x=re.split("[ =>]* ", line.strip())
@@ -116,16 +126,14 @@ with open(sys.argv[1]) as f:
         parse_line(l)
 
 print spinflip('.#./..#/###')
-grids = [ ".#./..#/###" ]
+grids = [[ ".#./..#/###" ]]
 for x in xrange(5):
-    newgrids = []
-    for g in grids:
-        newgrids.append(mappings[g])
+    newgrids = [ [ mappings[row] for row in col] for col in grids ]
     print "newgrid", newgrids
     print "join", s2m(join(newgrids))
     grids=split(join(newgrids))
 
 count=0
-for g in grids:
+for g in join(grids):
     count+=g.count('#')
 print count
