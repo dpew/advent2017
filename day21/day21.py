@@ -125,12 +125,12 @@ with open(sys.argv[1]) as f:
     for l in f.readlines():
         parse_line(l)
 
-print spinflip('.#./..#/###')
+iterations = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+
 grids = [[ ".#./..#/###" ]]
-for x in xrange(5):
+for x in xrange(iterations):
+    print "iteration", x
     newgrids = [ [ mappings[row] for row in col] for col in grids ]
-    print "newgrid", newgrids
-    print "join", s2m(join(newgrids))
     grids=split(join(newgrids))
 
 count=0
