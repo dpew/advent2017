@@ -21,6 +21,15 @@ def dt_parse(t):
         ret+=timedelta(hours=int(t[19:22]),minutes=int(t[23:]))
     return ret
 
+def partdatecmp(a, b):
+    if a[1] and b[1]:
+        return cmp(a[1], b[1])
+    if a[1]:
+        return -1
+    if b[1]:
+        return 1
+    return cmp(a[0], b[0])
+
 
 def get_star_times(jsmember, part):
     levels = jsmember['completion_day_level']
@@ -43,7 +52,7 @@ def to_member_dict(mid, jsmember):
         Date/times are indexed on level.  If unsolved, datetime is None
      '''
 
-    member = {}
+    member = { 'id': mid }
     for x in ['name', 'global_score', 'local_score', 'stars']:
         member[x] = jsmember[x]
     if not member['name']:
@@ -54,7 +63,21 @@ def to_member_dict(mid, jsmember):
     member['2'] = [ d for d in get_star_times(jsmember, '2') ]
     return member
 
+def members2levels(members, level, part):
+    '''
+        members - iterable of member dictionary
+        level - zero based level (e.g. 0 == advent level 1)
+        Returns a level list:
+          [(name, date, localscore), (name, date, localscore), ...]
+    '''
+    levels=[ (m['name'], m[str(part)][level]) for m in members ]
+    levels.sort(cmp=partdatecmp)
+    size=len(levels)
+    return [(l[0], l[1], size - e if l[1] else 0) for e, l in enumerate(levels)]
 
+def p(x):
+#    print "VALUE", x
+    return x
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -65,5 +88,13 @@ if __name__ == '__main__':
 
     # convert to a simpler dictionary
     members = [ to_member_dict(k, v) for k, v in score['members'].items() ]
+    part1 = [ members2levels(members, l, 1) for l in xrange(25) ]
+    part2 = [ members2levels(members, l, 2) for l in xrange(25) ]
 
-    pprint.pprint(members)
+
+    #pprint.pprint(part2)
+    for m in members:
+        print m['name'], sum(p(filter(lambda x: p(x)[0] == m['name'], level)[0][2]) for level in part1) + sum(p(filter(lambda x: p(x)[0] == m['name'], level)[0][2]) for level in part2)
+    #pprint.pprint(part2)
+
+   
