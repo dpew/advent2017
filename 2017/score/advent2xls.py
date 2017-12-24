@@ -3,6 +3,7 @@
 import sys
 import json
 import pprint
+import xlsxwriter
 from datetime import datetime,timedelta
 
 def readscore(scorefile):
@@ -20,30 +21,49 @@ def dt_parse(t):
         ret+=timedelta(hours=int(t[19:22]),minutes=int(t[23:]))
     return ret
 
-def get_star_times(member, part):
-    yield member['name']
-    yield member['global_score']
-    yield member['local_score']
-    yield member['stars']
-    yield part
-    levels = member['completion_day_level']
+
+def get_star_times(jsmember, part):
+    levels = jsmember['completion_day_level']
     for x in xrange(1, 26):
         try:
             yield dt_parse(levels[str(x)][str(part)]['get_star_ts'])
         except KeyError:
-            yield ''
+            yield None
+
+def to_member_dict(mid, jsmember):
+    '''
+        Member dictionary has:
+           name
+           global_score
+           local_score
+           stars
+           1: [ date|None, date|None, ...]
+           2: [ date|None, date|None, ...]
+
+        Date/times are indexed on level.  If unsolved, datetime is None
+     '''
+
+    member = {}
+    for x in ['name', 'global_score', 'local_score', 'stars']:
+        member[x] = jsmember[x]
+    if not member['name']:
+        member['name'] = mid
+    
+
+    member['1'] = [ d for d in get_star_times(jsmember, '1') ]
+    member['2'] = [ d for d in get_star_times(jsmember, '2') ]
+    return member
+
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print "Usage: %s scorefile" % (sys.argv[0],)
         sys.exit(1)
+    # Read advent json
     score = readscore(sys.argv[1])
-    #print json.dumps(score, sort_keys=True, indent=4)
 
-    #pprint.pprint(score)
- 
-    print ','.join(['Name', 'Global', 'Local', 'Stars', 'Part'] + [ str(x) for x in xrange(1, 26)])
-    for member in score['members'].values():
-        for part in ('1', '2'):
-            print ','.join(str(col) for col in get_star_times(member, part))
+    # convert to a simpler dictionary
+    members = [ to_member_dict(k, v) for k, v in score['members'].items() ]
+
+    pprint.pprint(members)
