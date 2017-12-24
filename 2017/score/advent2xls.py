@@ -104,16 +104,7 @@ def runningsum(iterable):
         s+=x
         yield s
 
-def wb_write_part_dates(worksheet, members, key, dateformat):
-    for l in xrange(25):
-        worksheet.write(0, l + 1, l + 1)
-
-    for r, m in enumerate(sorted(members.values(), key=lambda x: x['name'])):
-        worksheet.write(r+1, 0, m['name'])
-        for l in xrange(25):
-            worksheet.write(r+1, l+1, m[key][l], dateformat)
-
-def wb_write_part_scores(worksheet, members, key, dateformat):
+def wb_write_parts(worksheet, members, key, numformat):
     for l in xrange(25):
         worksheet.write(0, l + 1, l + 1)
 
@@ -138,13 +129,14 @@ def write_data(members, filename):
 
     dateformat = workbook.add_format({'num_format': 'dd/mm/yy hh:mm'})
     numformat = workbook.add_format({'num_format': '0'})
-    wb_write_part_dates(workbook.add_worksheet("Dates 1"), members, '1', dateformat) 
-    wb_write_part_dates(workbook.add_worksheet("Dates 2"), members, '2', dateformat) 
-    wb_write_part_dates(workbook.add_worksheet("Scores 1"), members, 'scores-1', numformat) 
-    wb_write_part_dates(workbook.add_worksheet("Scores 2"), members, 'scores-2', numformat) 
-    wb_write_part_dates(workbook.add_worksheet("Scores 1+2"), members, 'scores', numformat) 
-    wb_write_part_dates(workbook.add_worksheet("Scores C"), members, 'scores-cumulative', numformat) 
-    wb_write_part_dates(workbook.add_worksheet("Stars"), members, 'scores-stars', numformat) 
+
+    wb_write_parts(workbook.add_worksheet("Scores 1+2"), members, 'scores', numformat) 
+    wb_write_parts(workbook.add_worksheet("Scores C"), members, 'scores-cumulative', numformat) 
+    wb_write_parts(workbook.add_worksheet("Stars"), members, 'scores-stars', numformat) 
+    wb_write_parts(workbook.add_worksheet("Scores 1"), members, 'scores-1', numformat) 
+    wb_write_parts(workbook.add_worksheet("Dates 1"), members, '1', dateformat) 
+    wb_write_parts(workbook.add_worksheet("Scores 2"), members, 'scores-2', numformat) 
+    wb_write_parts(workbook.add_worksheet("Dates 2"), members, '2', dateformat) 
     workbook.close()
     
 
