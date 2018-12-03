@@ -23,6 +23,7 @@ class Matrix(object):
       self.matrix=[list(line) for x in xrange(size)]
       self.width = size
       self.height = size
+      self.goodcut = -1
 
     def set(self, x, y, val):
         self.matrix[y][x] = val
@@ -39,10 +40,27 @@ class Matrix(object):
        if not cut:
           return
        print cut
+       overlap=False
        for x in range(cut[1], cut[1] + cut[3]):
            for y in range(cut[2], cut[2] + cut[4]):
                val = self.get(x, y)
+               if val != 0:
+                   overlap=True
                self.set(x, y, cut[0] if val == 0 else -1 )
+       if not overlap:
+           self.goodcut = cut[0]
+            
+    def test_cut(self, cut):
+       if not cut:
+          return
+       overlap=False
+       for x in range(cut[1], cut[1] + cut[3]):
+           for y in range(cut[2], cut[2] + cut[4]):
+               val = self.get(x, y)
+               if val != cut[0]:
+                   overlap=True
+       if not overlap:
+           self.goodcut = cut[0]
 
     def __repr__(self):
         return pprint.pformat(self.matrix)
@@ -60,10 +78,15 @@ if __name__ == '__main__':
                 m.add_cut(to_cut(cut))
         print "here"
         count=0
-        print repr(m)
+        #print repr(m)
         for y in xrange(m.height):
            for x in xrange(m.width):
                if m.get(x, y) == -1:
                    count+=1
-            
         print count
+            
+        with open(sys.argv[1]) as f:
+            for cut in f.readlines():
+                m.test_cut(to_cut(cut))
+
+        print m.goodcut
