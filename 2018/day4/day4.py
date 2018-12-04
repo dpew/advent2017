@@ -39,6 +39,15 @@ class Guard(object):
             count[m] += minutes[m]
       return count.index(max(count))
 
+  def maxhour2(self):
+      count=[0] * 60
+      for d in self.days.keys():
+         minutes = self.day(d)
+         for m in xrange(0, 60):
+            count[m] += minutes[m]
+      m = max(count)
+      return m, count.index(m)
+
   def __repr__(self):
       data=""
       for d in self.days.keys():
@@ -86,3 +95,18 @@ for g, gu in guards.items():
 print gguard.maxhour()
 print gnum
 print "Answer", gnum * gguard.maxhour()
+
+sleepmax=0
+gnum=-1
+ghour=-1
+for g, gu in guards.items():
+    s, h = gu.maxhour2()
+    if s > sleepmax:
+        sleepmax = s
+        ghour = h
+        gnum = g
+
+print gnum
+print ghour
+print "Answer", gnum * ghour
+
