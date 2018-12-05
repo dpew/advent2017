@@ -57,5 +57,15 @@ if len(sys.argv) > 1:
     input = readlines(sys.argv[1])[0]
     print len(input)
     print len(reduce(input))
+
+    smallest=len(input)
+    sunit=''
+    for unit in xrange(ord('a'), ord('z')+1):
+        unit = chr(unit)
+        small = len(reduce(remove(input, unit)))
+        if small < smallest:
+            smallest = small
+            sunit = unit
+    print smallest, sunit
 else:
     doctest.testmod()
