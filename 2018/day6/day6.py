@@ -25,18 +25,22 @@ class Grid(object):
     def makegrid(self):
         width = self.maxX - self.minX + 1
         height = self.maxY - self.minY + 1
-        self.grid = [None] * width
+        self.grid = [None] * (width + 1)
         for x in xrange(0, width):
-            self.grid[x] = [ None ] * height
+            self.grid[x] = [ None ] * (height + 1)
         self.width = width
         self.height = height
        
     def getmax(self, x, y):
-        return self.grid[x - self.minX][y - self.minY] 
+        try:
+            return self.grid[x - self.minX][y - self.minY] 
+        except:
+            print "Error", x, y, x - self.minX, y - self.minY, self.width, self.height
+            raise
 
     def setmax(self, x, y, point, dist):
         last = self.getmax(x, y)
-        edge = x == self.minX or x == self.maxX or y == self.minY or y == self.maxY
+        edge = x == self.minX or x == self.maxX - 1 or y == self.minY or y == self.maxY - 1
         if last and last[0]:
             last[0].reduce(edge)
         self.grid[x - self.minX][y - self.minY] = (point, dist)
@@ -78,7 +82,10 @@ class Point(object):
            self.edgecount += 1
 
     def __repr__(self):
-        return "point<%s, %d, %d: %d, %d>" % (self.name, self.x, self.y, self.count, self.edgecount)
+        return "point<%s[%s], %d, %d: %d, %d>" % (self.name, shortname(self.name), self.x, self.y, self.count, self.edgecount)
+
+def shortname(name):
+    return chr(ord('A') + int(name))
 
 def distance(x, y, x1, y1):
     '''
@@ -95,6 +102,12 @@ def distance(x, y, x1, y1):
 
 def printsec(sec):
     if sec is None:
+        return "~"
+    if sec[0]:
+        return "%s" % shortname(sec[0].name)
+    return '.'
+
+    if sec is None:
         return "E   "
     if sec[0]:
         return "%s:%2d" % (sec[0].name, sec[1])
@@ -104,7 +117,7 @@ def printgrid(g):
    print "grid:"
    for y in xrange(g.minY, g.height):
        x = [ printsec(g.getmax(x, y)) for x in xrange(g.minX, g.width) ]
-       print x
+       print ''.join(x)
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:
@@ -125,8 +138,8 @@ if __name__ == '__main__':
         print grid
         grid.makegrid()
         for p in points:
-            for y in xrange(grid.minY, grid.height):
-                for x in xrange(grid.minX, grid.width):
+            for y in xrange(grid.minY, grid.maxY):
+                for x in xrange(grid.minX, grid.maxX):
                      grid.setval(x, y, p, distance(x, y, p.x, p.y))
        #     printgrid(grid)
        #     sys.exit(1)
@@ -136,5 +149,5 @@ if __name__ == '__main__':
             print p
             if p.edgecount == 0:
                 maxarea = max(maxarea, p.count)
-        #printgrid(grid)
+        printgrid(grid)
         print maxarea
