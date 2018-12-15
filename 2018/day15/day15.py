@@ -45,7 +45,7 @@ class Board(object):
         self.units = units
         self.height = len(grid)
         self.width = max(len(g) for g in grid)
-        self.reset()
+        self.update()
 
     def get(self, pos):
         '''
@@ -56,7 +56,7 @@ class Board(object):
         except KeyError:
             return (self.grid[pos[1]][pos[0]], None)
 
-    def reset(self):
+    def update(self):
         self.unitdict = dict((u.pos, u) for u in self.units)
 
     def visit(self, visitors, criteria, pos, path=(), dist=0, maxdist=MAXDIST):
@@ -73,7 +73,7 @@ class Board(object):
                return visitors
 
             # print "Distance", visitors.distance(pos)
-            visitors.put(pos, dist, at, path)
+            visitors.put(pos, dist, at[0], at[1], path)
 
         for d in DIRECTIONS:
             self.visit(visitors, criteria, addpos(pos, d), path=path + (pos,), dist=dist+1, maxdist=maxdist-1)
@@ -103,14 +103,22 @@ class Unit(object):
             Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
-        #pprint.pprint(visitors.positions)
         print visitors
+        nearest = visitors.nearest()
+        if nearest:
+            self.pos = nearest[0][2][0]
+            return 1
+        
         return 0
 
     def attack(self, board):
         '''
             Attacks adjacent units in board
         '''
+        visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
+        nearest = visitors.nearest()
+        if nearest and nearest[0].dist == 1:
+            nearest[0].unit.points -= self.apower
         #visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos, maxdist=1)
         #visitors.nearest()
         pass
@@ -118,25 +126,39 @@ class Unit(object):
     def __repr__(self):
         return "%s(%2d,%2d,pnt=%d,pwr=%d)" % (self.type, self.pos[0], self.pos[1], self.points, self.apower)
 
+class VNode(object):
+    def __init__(self, dist, kind, unit, path): 
+       self.dist = dist
+       self.kind = kind
+       self.unit = unit
+       self.path = path
+
+    def __repr__(self):
+       return "VNode(dist=%d, kind=%s, unit=%s, path=%s)" % (self.dist, self.kind, self.unit, self.path)
+
 class Visitors(object):
 
     def __init__(self):
        self.positions = {}
 
-    def put(self, pos, dist, at, path):
+    def put(self, pos, dist, kind, unit, path):
        try:
-           self.positions[pos] = (dist, at, sortpaths(path, self.positions[pos][2])[0])
+           self.positions[pos] = VNode(dist, kind, unit, sortpaths(path, self.positions[pos].path)[0])
        except KeyError:
-           self.positions[pos] = (dist, at, path)
+           self.positions[pos] = VNode(dist, kind, unit, path)
 
     def distance(self, pos):
        try:
-           return self.positions[pos][0]
+           return self.positions[pos].dist
        except KeyError:
            return MAXDIST
 
+    def nearest(self):
+       sorted((n for n in self.positions.values() if n.kind != '.'),
+              key=lambda node: (node.dist, invertpath(node.path)))
+
     def __repr__(self):
-       return pprint.pformat(dict((p, v) for p, v in self.positions.items() if v[1][0] != '.'))
+       return pprint.pformat(dict((p, v) for p, v in self.positions.items() if v.kind != '.'))
        
 
 if __name__ == '__main__':
@@ -173,6 +195,7 @@ with open(sys.argv[1]) as f:
             moves+=u.move(board)
         if not moves:
             break
+        board.update()
         rnd += 1
 
     points=sum(u.points for u in board.units)
