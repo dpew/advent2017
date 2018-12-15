@@ -56,6 +56,17 @@ def gridpower(serial, x, y):
             a.append(power(serial, x2, y2))
     return sum(a)
 
+def gridpower(serial, x, y, size):
+    '''
+       >>> gridpower(18, 33, 45)
+       29
+    '''
+    a = []
+    for x2 in xrange(x, x+size):
+        for y2 in xrange(y, y+size):
+            a.append(power(serial, x2, y2))
+    return sum(a)
+
 gridp={}
 def gridpower2(serial, x, y, size):
     '''
@@ -95,7 +106,7 @@ if __name__ == '__main__':
       print s
       for x in xrange(0, 300-s):
         for y in xrange(0, 300-s):
-            mp2 = gridpower2(serial, x, y, s)
+            mp2 = gridpower(serial, x, y, s)
             if mp2 > mp:
                mp, mx, my, ms = mp2, x, y, s
    
