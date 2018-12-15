@@ -13,8 +13,30 @@ MAXDIST=100000
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
 
-def sortpaths(paths):
-    return sorted(paths, key=lambda p: (p[0][1], p[0][0]))
+def invertpath(path):
+    '''
+        >>> invertpath(((4, 2), (3, 2), (2, 2)))
+        ((2, 4), (2, 3), (2, 2))
+    '''
+    return tuple(tuple((t[::-1])) for t in path)
+
+def sortpaths(*paths):
+    '''
+        >>> p1=((2,1),(2,2),(1,2),(1,3))
+        >>> p2=((2,1),(1,1),(1,2),(1,3))
+        >>> sortpaths(p1, p2)
+        [((2, 1), (1, 1), (1, 2), (1, 3)), ((2, 1), (2, 2), (1, 2), (1, 3))]
+        >>> sortpaths(p2, p1)
+        [((2, 1), (1, 1), (1, 2), (1, 3)), ((2, 1), (2, 2), (1, 2), (1, 3))]
+        >>> p1=((4, 2), (3, 2), (2, 2))
+        >>> p2=((4, 2), (5, 1), (2, 2))
+        >>> sortpaths(p1, p2)
+        [((4, 2), (5, 1), (2, 2)), ((4, 2), (3, 2), (2, 2))]
+        >>> sortpaths(p2, p1)
+        [((4, 2), (5, 1), (2, 2)), ((4, 2), (3, 2), (2, 2))]
+    '''
+    return sorted(paths, key=lambda p: invertpath(p))
+
 
 class Board(object):
 
@@ -103,7 +125,7 @@ class Visitors(object):
 
     def put(self, pos, dist, at, path):
        try:
-           self.positions[pos] = (dist, at, sortpaths((path, self.positions[pos][2]))[0])
+           self.positions[pos] = (dist, at, sortpaths(path, self.positions[pos][2])[0])
        except KeyError:
            self.positions[pos] = (dist, at, path)
 
