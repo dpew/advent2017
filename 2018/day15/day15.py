@@ -13,6 +13,9 @@ MAXDIST=100000
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
 
+def sortpaths(paths):
+    return sorted(paths, key=lambda p: (p[0][1], p[0][0]))
+
 class Board(object):
 
     def __init__(self, grid, units):
@@ -34,7 +37,7 @@ class Board(object):
     def reset(self):
         self.unitdict = dict((u.pos, u) for u in self.units)
 
-    def visit(self, visitors, criteria, pos, dist=0, maxdist=MAXDIST):
+    def visit(self, visitors, criteria, pos, path=(), dist=0, maxdist=MAXDIST):
         if dist > maxdist:
            return visitors
   
@@ -44,13 +47,14 @@ class Board(object):
             if not criteria(at):
                 return visitors
 
-            if visitors.distance(pos) <= dist:
+            if visitors.distance(pos) < dist:
                return visitors
 
-            visitors.put(pos, dist, at)
+            # print "Distance", visitors.distance(pos)
+            visitors.put(pos, dist, at, path)
 
         for d in DIRECTIONS:
-            self.visit(visitors, criteria, addpos(pos, d), dist+1, maxdist-1)
+            self.visit(visitors, criteria, addpos(pos, d), path=path + (pos,), dist=dist+1, maxdist=maxdist-1)
         return visitors
 
     def row(self, y):
@@ -77,13 +81,16 @@ class Unit(object):
             Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
-        pprint.pprint(visitors.positions)
+        #pprint.pprint(visitors.positions)
+        print visitors
         return 0
 
     def attack(self, board):
         '''
             Attacks adjacent units in board
         '''
+        #visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos, maxdist=1)
+        #visitors.nearest()
         pass
 
     def __repr__(self):
@@ -94,14 +101,20 @@ class Visitors(object):
     def __init__(self):
        self.positions = {}
 
-    def put(self, pos, dist, at):
-       self.positions[pos] = (dist, at)
+    def put(self, pos, dist, at, path):
+       try:
+           self.positions[pos] = (dist, at, sortpaths((path, self.positions[pos][2]))[0])
+       except KeyError:
+           self.positions[pos] = (dist, at, path)
 
     def distance(self, pos):
        try:
            return self.positions[pos][0]
        except KeyError:
            return MAXDIST
+
+    def __repr__(self):
+       return pprint.pformat(dict((p, v) for p, v in self.positions.items() if v[1][0] != '.'))
        
 
 if __name__ == '__main__':
