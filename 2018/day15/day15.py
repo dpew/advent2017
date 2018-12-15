@@ -75,14 +75,16 @@ class Board(object):
         '''
         moves = 0
         for u in self.listunits():
-            moves+=u.move(board)
-            self.update()
+            if u.points > 0:
+               moves+=u.move(board)
+               self.update()
         return moves
 
     def attack(self):
         for u in self.listunits():
-            u.attack(board)
-            self.update()
+            if u.points > 0:
+               u.attack(board)
+               self.update()
 
     def visit(self, visitors, criteria, pos, path=(), dist=0, maxdist=MAXDIST):
         if dist > maxdist:
