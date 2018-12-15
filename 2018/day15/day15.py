@@ -21,6 +21,27 @@ def invertpath(path):
     '''
     return tuple(tuple((t[::-1])) for t in path)
 
+def readingorder(p1, width=1000):
+    '''
+        >>> readingorder((3, 2))
+        2003
+        >>> readingorder((5, 10))
+        10005
+        >>> p1 = (100, 100)
+        >>> sorted((addpos(p1, d) for d in DIRECTIONS), key=lambda k: (readingorder(k) - readingorder(p1)) % (MAXDIST * MAXDIST))
+        [(101, 100), (100, 101), (100, 99), (99, 100)]
+    '''
+    return p1[1] * width + p1[0]
+
+
+def comppos(p1, p2):
+    '''
+        >>> p = (100, 100)
+        >>> sorted((addpos(p, d) for d in DIRECTIONS), key=lambda k: comppos(p, k))
+        [(101, 100), (100, 101), (100, 99), (99, 100)]
+    '''
+    return (readingorder(p2) - readingorder(p1)) % (MAXDIST * MAXDIST)
+
 def sortpaths(*paths):
     '''
         >>> p1=((2,1),(2,2),(1,2),(1,3))
@@ -37,7 +58,6 @@ def sortpaths(*paths):
         [((4, 2), (5, 1), (2, 2)), ((4, 2), (3, 2), (2, 2))]
         >>> p1=((4, 2), (3, 2), (2, 2))
         >>> p2=((4, 2), (5, 1), (2, 2))
-        >>> sortpaths(p1, p2)
     '''
     return sorted(paths, key=lambda p: invertpath(p))
 
@@ -67,7 +87,7 @@ class Board(object):
         '''
             Returns units in read order
         '''
-        return sorted(board.unitdict.values(), key=lambda u: (u.pos[1], u.pos[0]))
+        return sorted(board.unitdict.values(), key=lambda u: readingorder(u.pos))
 
     def move(self):
         '''
@@ -152,7 +172,7 @@ class Unit(object):
             return
 
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
-        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, tuple(nd.pos[::-1])))
+        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, readingorder(nd.pos))) #comppos(self.pos, nd.pos)))
 #        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, self.pos))
         if nearest:
             nearest[0].unit.points -= self.apower
