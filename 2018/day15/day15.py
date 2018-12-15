@@ -10,12 +10,13 @@ from collections import defaultdict
 #DIRECTIONS = ((-1, 0), (1, 0), (0, -1), (0, 1))
 DIRECTIONS = ((1, 0), (0, 1), (-1, 0), (0, -1))
 MAXDIST=100000
-DEBUG=2
+DEBUG=1
 
 def shortest(nodes):
     if not nodes:
        return None
-    return sorted(nodes, key=lambda n: (n.dist, n.pos, invertpath(n.path)))[0]
+    #return sorted(nodes, key=lambda n: (n.dist, n.pos, invertpath(n.path)))[0]
+    return sorted(nodes, key=lambda n: (n.dist, invertpath(n.path)))[0]
 
 def left(pos):
     '''
@@ -157,12 +158,14 @@ class Board(object):
             
             for d in DIRECTIONS:
                p = addpos(n.pos, d)
-               if not v.get(p):
-                  at = self.get(p)
+               #if not v.get(p):
+               at = self.get(p)
                   #print "Found ", at
-                  if criteria(at):
-                      #print "Adding ", at
-                      spanning.append(v.put(p, n.dist + 1, at[0], at[1], n.path + (p,)))
+               if criteria(at):
+                   #print "Adding ", p, at
+                   s = v.put(p, n.dist + 1, at[0], at[1], n.path + (p,))
+                   if s:
+                       spanning.append(s)
 
     def visit(self, visitors, criteria, pos, path=(), direct=None, dist=0, maxdist=200): #MAXDIST):
         
@@ -278,7 +281,7 @@ class Visitors(object):
            node = self.positions[pos]
            node = sorted((node, newnode), key=lambda n: (n.dist, n.pos, invertpath(n.path)))[0]
            self.positions[pos] = node
-           return newnode
+           return None # newnode
            
        except KeyError:
            self.positions[pos] = newnode
