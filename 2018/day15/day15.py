@@ -7,9 +7,41 @@ import re
 import doctest
 from collections import defaultdict
 
-DIRECTIONS = ((-1, 0), (1, 0), (0, -1), (0, 1))
+#DIRECTIONS = ((-1, 0), (1, 0), (0, -1), (0, 1))
+DIRECTIONS = ((1, 0), (0, 1), (-1, 0), (0, -1))
 MAXDIST=100000
-DEBUG=1
+DEBUG=2
+
+def shortest(nodes):
+    if not nodes:
+       return None
+    return sorted(nodes, key=lambda n: (n.dist, n.pos, invertpath(n.path)))[0]
+
+def left(pos):
+    '''
+       >>> left((0, 1))
+       (1, 0)
+       >>> left((0, -1))
+       (-1, 0)
+       >>> left((1, 0))
+       (0, -1)
+       >>> left((-1, 0))
+       (0, 1)
+    '''
+    return (pos[1], -pos[0])
+
+def right(pos):
+    '''
+       >>> right((0, 1))
+       (-1, 0)
+       >>> right((0, -1))
+       (1, 0)
+       >>> right((1, 0))
+       (0, 1)
+       >>> right((-1, 0))
+       (0, -1)
+    '''
+    return (-pos[1], pos[0])
 
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
@@ -78,7 +110,10 @@ class Board(object):
         try:
             return (self.unitdict[pos].type, self.unitdict[pos])
         except KeyError:
-            return (self.grid[pos[1]][pos[0]], None)
+            try:
+                return (self.grid[pos[1]][pos[0]], None)
+            except IndexError:
+                return ( '?', None)
 
     def update(self):
         self.unitdict = dict((u.pos, u) for u in self.units if u.points > 0)
@@ -101,14 +136,39 @@ class Board(object):
         return moves
 
     def attack(self):
+        attacks = 0
         for u in self.listunits():
-            if u.points > 0:
-               u.attack(board)
-               self.update()
+            attacks += u.attack(board)
+            self.update()
+        return attacks
 
-    def visit(self, visitors, criteria, pos, path=(), dist=0, maxdist=MAXDIST):
-        if dist > maxdist:
-           return visitors
+    def visit2(self, pos, criteria):
+        v = Visitors() 
+        spanning=[]
+        dist = MAXDIST
+
+        at = self.get(pos)
+        spanning.append(v.put(pos, 0, at[0], at[1], (pos,)))
+        while True:
+            n = shortest(spanning)
+            if not n:
+                return v
+            spanning.remove(n)
+            
+            for d in DIRECTIONS:
+               p = addpos(n.pos, d)
+               if not v.get(p):
+                  at = self.get(p)
+                  #print "Found ", at
+                  if criteria(at):
+                      #print "Adding ", at
+                      spanning.append(v.put(p, n.dist + 1, at[0], at[1], n.path + (p,)))
+
+    def visit(self, visitors, criteria, pos, path=(), direct=None, dist=0, maxdist=200): #MAXDIST):
+        
+        # print "HERE", pos, dist, direct
+        if dist > maxdist or dist > visitors.mindist(pos):
+           return
   
         # if dist == 0, ignore the current position
         if dist > 0:
@@ -122,8 +182,8 @@ class Board(object):
             # print "Distance", visitors.distance(pos)
             visitors.put(pos, dist, at[0], at[1], path)
 
-        for d in DIRECTIONS:
-            self.visit(visitors, criteria, addpos(pos, d), path=path + (pos,), dist=dist+1, maxdist=maxdist-1)
+        for d in DIRECTIONS if not direct else (direct, left(direct), right(direct)):
+            self.visit(visitors, criteria, addpos(pos, d), path=path + (pos,), direct=d, dist=dist+1, maxdist=maxdist-1)
         return visitors
 
     def row(self, y):
@@ -151,12 +211,12 @@ class Unit(object):
         '''
             Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
-        visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
+        visitors = board.visit2(self.pos, lambda c: c[0] in ('.', self.seek))
         if DEBUG > 1:
-           print visitors
+           print "VISITORS", visitors
         nearest = visitors.nearest()
         if DEBUG > 1:
-           print "NEAREST", nearest
+           print "NEAREST", self.prt(), self.pos, pprint.pformat(nearest)
         if nearest:
             if nearest[0].dist > 1:
                 self.pos = nearest[0].path[1]
@@ -167,18 +227,19 @@ class Unit(object):
     def attack(self, board):
         '''
             Attacks adjacent units in board
+            Returns 0 = no combatants, 1 a combatant
         '''
-        if self.apower <= 0:
-            return
-
-        visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
-        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, readingorder(nd.pos))) #comppos(self.pos, nd.pos)))
+        visitors = board.visit2(self.pos, lambda c: c[0] in ('.', self.seek))
+        nearest = sorted((n for n in visitors.nearest() if n.dist == 1 and n.unit.points > 0), key=lambda nd: (nd.unit.points, readingorder(nd.pos))) #comppos(self.pos, nd.pos)))
 #        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, self.pos))
+        if DEBUG > 1:
+            pprint.pprint((self, nearest))
         if nearest:
             nearest[0].unit.points -= self.apower
+            return 1
         #visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos, maxdist=1)
         #visitors.nearest()
-        pass
+        return 0
 
     def prt(self):
         return "%s(%d)" % (self.type, self.points)
@@ -202,15 +263,26 @@ class Visitors(object):
     def __init__(self):
        self.positions = {}
 
+    def get(self, pos):
+       return self.positions.get(pos, None)
+
+    def mindist(self, pos):
+       try:
+           return self.positions[pos].dist
+       except KeyError:
+           return MAXDIST
+
     def put(self, pos, dist, kind, unit, path):
        newnode = VNode(dist, pos, kind, unit, path)
        try:
            node = self.positions[pos]
            node = sorted((node, newnode), key=lambda n: (n.dist, n.pos, invertpath(n.path)))[0]
            self.positions[pos] = node
+           return newnode
            
        except KeyError:
            self.positions[pos] = newnode
+           return newnode
 
     def distance(self, pos):
        try:
@@ -219,7 +291,7 @@ class Visitors(object):
            return MAXDIST
 
     def nearest(self):
-       return sorted((n for n in self.positions.values() if n.kind != '.'),
+       return sorted((n for n in self.positions.values() if n.kind != '.' and n.dist > 0),
               key=lambda node: (node.dist, invertpath(node.path)))
 
     def __repr__(self):
@@ -259,7 +331,8 @@ with open(sys.argv[1]) as f:
         if not moves:
             break
       
-        board.attack()
+        atk = board.attack()
+        #if atk:
         # pprint.pprint(board.units)
         rnd += 1
 
