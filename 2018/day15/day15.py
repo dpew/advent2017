@@ -132,15 +132,21 @@ class Board(object):
         moves = 0
         for u in self.listunits():
             if u.points > 0:
+               if DEBUG > 1:
+                  print "TURN %s" % (u, )
                moves+=u.move(board)
+               self.update()
+               u.attack(board)
                self.update()
         return moves
 
     def attack(self):
+        return
         attacks = 0
         for u in self.listunits():
-            attacks += u.attack(board)
-            self.update()
+            if u.points > 0:
+                attacks += u.attack(board)
+                self.update()
         return attacks
 
     def visit2(self, pos, criteria):
@@ -215,13 +221,15 @@ class Unit(object):
             Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
         visitors = board.visit2(self.pos, lambda c: c[0] in ('.', self.seek))
-        if DEBUG > 1:
+        if DEBUG > 2:
            print "VISITORS", visitors
         nearest = visitors.nearest()
-        if DEBUG > 1:
-           print "NEAREST", self.prt(), self.pos, pprint.pformat(nearest)
+        if DEBUG > 2:
+           print "MOVE", self.prt(), self.pos, pprint.pformat(nearest)
         if nearest:
             if nearest[0].dist > 1:
+                if DEBUG > 1:
+                    print "MOVE %s -> %s", (self, nearest[0].path[1])
                 self.pos = nearest[0].path[1]
             return 1
         
@@ -235,9 +243,11 @@ class Unit(object):
         visitors = board.visit2(self.pos, lambda c: c[0] in ('.', self.seek))
         nearest = sorted((n for n in visitors.nearest() if n.dist == 1 and n.unit.points > 0), key=lambda nd: (nd.unit.points, readingorder(nd.pos))) #comppos(self.pos, nd.pos)))
 #        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, self.pos))
-        if DEBUG > 1:
-            pprint.pprint((self, nearest))
+        if DEBUG > 2:
+            pprint.pprint(('ATTACK', self, nearest))
         if nearest:
+            if DEBUG > 1:
+               print "ATTACK %s -> %s" % (self, nearest[0].unit)
             nearest[0].unit.points -= self.apower
             return 1
         #visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos, maxdist=1)
