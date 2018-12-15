@@ -57,7 +57,28 @@ class Board(object):
             return (self.grid[pos[1]][pos[0]], None)
 
     def update(self):
-        self.unitdict = dict((u.pos, u) for u in self.units)
+        self.unitdict = dict((u.pos, u) for u in self.units if u.points > 0)
+
+    def listunits(self):
+        '''
+            Returns units in read order
+        '''
+        return sorted(board.unitdict.values(), key=lambda u: (u.pos[1], u.pos[0]))
+
+    def move(self):
+        '''
+           Moves all units.  Returns number of units moved
+        '''
+        moves = 0
+        for u in self.listunits():
+            moves+=u.move(board)
+        self.update()
+        return moves
+
+    def attack(self):
+        for u in self.listunits():
+            u.attack(board)
+        self.update()
 
     def visit(self, visitors, criteria, pos, path=(), dist=0, maxdist=MAXDIST):
         if dist > maxdist:
@@ -105,8 +126,10 @@ class Unit(object):
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
         print visitors
         nearest = visitors.nearest()
+        print "NEAREST", nearest
         if nearest:
-            self.pos = nearest[0][2][0]
+            if nearest[0].dist > 1:
+                self.pos = nearest[0].path[1]
             return 1
         
         return 0
@@ -115,6 +138,9 @@ class Unit(object):
         '''
             Attacks adjacent units in board
         '''
+        if self.apower <= 0:
+            return
+
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
         nearest = visitors.nearest()
         if nearest and nearest[0].dist == 1:
@@ -154,7 +180,7 @@ class Visitors(object):
            return MAXDIST
 
     def nearest(self):
-       sorted((n for n in self.positions.values() if n.kind != '.'),
+       return sorted((n for n in self.positions.values() if n.kind != '.'),
               key=lambda node: (node.dist, invertpath(node.path)))
 
     def __repr__(self):
@@ -187,15 +213,14 @@ with open(sys.argv[1]) as f:
 
     rnd = 0
     while True: 
-        moves=0
         print rnd
         print board
-        for u in sorted(board.units, key=lambda u: (u.pos[1], u.pos[0])):
-            print u.type, u.pos
-            moves+=u.move(board)
+        moves=board.move()
         if not moves:
             break
-        board.update()
+      
+        board.attack()
+        pprint.pprint(board.units)
         rnd += 1
 
     points=sum(u.points for u in board.units)
