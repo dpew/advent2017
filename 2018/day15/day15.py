@@ -131,6 +131,9 @@ class Board(object):
         '''
         moves = 0
         for u in self.listunits():
+            remain = set(u.type for u in self.unitdict.values())
+            if len(remain) < 2:
+               return False
             if u.points > 0:
                if DEBUG > 1:
                   print "TURN %s" % (u, )
@@ -138,7 +141,7 @@ class Board(object):
                self.update()
                u.attack(board)
                self.update()
-        return moves
+        return True
 
     def attack(self):
         return
@@ -344,10 +347,12 @@ with open(sys.argv[1]) as f:
         if not moves:
             break
       
-        atk = board.attack()
+        #atk = board.attack()
         #if atk:
         # pprint.pprint(board.units)
         rnd += 1
 
     points=sum(u.points for u in board.listunits())
+    print "ROUND", rnd
+    print board
     print rnd, points, rnd * points 
