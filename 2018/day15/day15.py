@@ -71,7 +71,8 @@ with open(sys.argv[1]) as f:
     rnd = 0
     while True: 
         moves=0
-        for u in units:
+        for u in sorted(units, key=lambda u: (u.pos[1], u.pos[0])):
+            print u.type, u.pos
             moves+=u.move(thegrid)
         if not moves:
             break
