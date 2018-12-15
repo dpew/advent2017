@@ -7,18 +7,29 @@ import re
 import doctest
 from collections import defaultdict
 
-class Grid(object):
+class Board(object):
 
-    def __init__(self, grid, width, height):
+    def __init__(self, grid, units):
         self.grid = grid
-        self.width = width
-        self.height = height
+        self.units = units
+        self.height = len(grid)
+        self.width = max(len(g) for g in grid)
+        self.reset()
 
     def get(self, pos):
-        return self.grid[pos[1]][pos[0]]
+        try:
+            return self.unitdict[pos].type
+        except KeyError:
+            return self.grid[pos[1]][pos[0]]
+
+    def reset(self):
+        self.unitdict = dict((u.pos, u) for u in self.units)
+
+    def row(self, y):
+        return ''.join(self.get((x, y)) for x in xrange(self.width))
 
     def __repr__(self):
-        return ''.join(self.grid)
+        return '\n'.join(board.row(y) for y in xrange(self.height))
 
 class Unit(object):
 
@@ -32,15 +43,15 @@ class Unit(object):
         self.apower = apower
 
 
-    def move(self, grid):
+    def move(self, board):
         '''
-            Move the unit in the grid.  Returns 0 = no moves, 1 a move possible
+            Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
         return 0
 
-    def attack(self, grid):
+    def attack(self, board):
         '''
-            Attacks adjacent units in grid
+            Attacks adjacent units in board
         '''
         pass
 
@@ -66,17 +77,20 @@ with open(sys.argv[1]) as f:
         grid.append(nl.rstrip())
         width = max(width, len(l))
         y+=1
-    thegrid = Grid(grid, width, y)
+    board = Board(grid, units)
+    del units
 
     rnd = 0
     while True: 
         moves=0
-        for u in sorted(units, key=lambda u: (u.pos[1], u.pos[0])):
+        print rnd
+        print board
+        for u in sorted(board.units, key=lambda u: (u.pos[1], u.pos[0])):
             print u.type, u.pos
-            moves+=u.move(thegrid)
+            moves+=u.move(board)
         if not moves:
             break
         rnd += 1
 
-    points=sum(u.points for u in units)
+    points=sum(u.points for u in board.units)
     print rnd, points, rnd * points 
