@@ -9,6 +9,7 @@ from collections import defaultdict
 
 DIRECTIONS = ((-1, 0), (1, 0), (0, -1), (0, 1))
 MAXDIST=100000
+DEBUG=1
 
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
@@ -81,7 +82,7 @@ class Board(object):
     def attack(self):
         for u in self.listunits():
             u.attack(board)
-        self.update()
+            self.update()
 
     def visit(self, visitors, criteria, pos, path=(), dist=0, maxdist=MAXDIST):
         if dist > maxdist:
@@ -104,7 +105,9 @@ class Board(object):
         return visitors
 
     def row(self, y):
-        return ''.join(self.get((x, y))[0] for x in xrange(self.width))
+        return ''.join(self.get((x, y))[0] for x in xrange(self.width)) \
+               + ' ' \
+               + ','.join(self.get((x, y))[1].prt() for x in xrange(self.width) if self.get((x, y))[1])
 
     def __repr__(self):
         return '\n'.join(board.row(y) for y in xrange(self.height))
@@ -127,9 +130,11 @@ class Unit(object):
             Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
-        print visitors
+        if DEBUG > 1:
+           print visitors
         nearest = visitors.nearest()
-        print "NEAREST", nearest
+        if DEBUG > 1:
+           print "NEAREST", nearest
         if nearest:
             if nearest[0].dist > 1:
                 self.pos = nearest[0].path[1]
@@ -145,25 +150,30 @@ class Unit(object):
             return
 
         visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
-        nearest = visitors.nearest()
-        if nearest and nearest[0].dist == 1:
+        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, tuple(nd.pos[::-1])))
+#        nearest = sorted((n for n in visitors.nearest() if n.dist == 1), key=lambda nd: (nd.unit.points, self.pos))
+        if nearest:
             nearest[0].unit.points -= self.apower
         #visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos, maxdist=1)
         #visitors.nearest()
         pass
 
+    def prt(self):
+        return "%s(%d)" % (self.type, self.points)
+
     def __repr__(self):
         return "%s(%2d,%2d,pnt=%d,pwr=%d)" % (self.type, self.pos[0], self.pos[1], self.points, self.apower)
 
 class VNode(object):
-    def __init__(self, dist, kind, unit, path): 
+    def __init__(self, dist, pos, kind, unit, path): 
        self.dist = dist
+       self.pos = pos
        self.kind = kind
        self.unit = unit
        self.path = path
 
     def __repr__(self):
-       return "VNode(dist=%d, kind=%s, unit=%s, path=%s)" % (self.dist, self.kind, self.unit, self.path)
+       return "VNode(dist=%d, pos=%s, kind=%s, unit=%s, path=%s)" % (self.dist, self.pos, self.kind, self.unit, self.path)
 
 class Visitors(object):
 
@@ -171,16 +181,14 @@ class Visitors(object):
        self.positions = {}
 
     def put(self, pos, dist, kind, unit, path):
+       newnode = VNode(dist, pos, kind, unit, path)
        try:
            node = self.positions[pos]
-           if node.dist == dist:
-              node = VNode(dist, kind, unit, sortpaths(path, self.positions[pos].path)[0])
-           else:
-              node = VNode(dist, kind, unit, path)
+           node = sorted((node, newnode), key=lambda n: (n.dist, n.pos, invertpath(n.path)))[0]
            self.positions[pos] = node
            
        except KeyError:
-           self.positions[pos] = VNode(dist, kind, unit, path)
+           self.positions[pos] = newnode
 
     def distance(self, pos):
        try:
@@ -222,15 +230,16 @@ with open(sys.argv[1]) as f:
 
     rnd = 0
     while True: 
-        print rnd
-        print board
+        if DEBUG > 0:
+          print "ROUND", rnd
+          print board
         moves=board.move()
         if not moves:
             break
       
         board.attack()
-        pprint.pprint(board.units)
+        # pprint.pprint(board.units)
         rnd += 1
 
-    points=sum(u.points for u in board.units)
+    points=sum(u.points for u in board.listunits())
     print rnd, points, rnd * points 
