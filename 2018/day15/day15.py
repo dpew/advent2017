@@ -34,6 +34,9 @@ def sortpaths(*paths):
         [((4, 2), (5, 1), (2, 2)), ((4, 2), (3, 2), (2, 2))]
         >>> sortpaths(p2, p1)
         [((4, 2), (5, 1), (2, 2)), ((4, 2), (3, 2), (2, 2))]
+        >>> p1=((4, 2), (3, 2), (2, 2))
+        >>> p2=((4, 2), (5, 1), (2, 2))
+        >>> sortpaths(p1, p2)
     '''
     return sorted(paths, key=lambda p: invertpath(p))
 
@@ -72,7 +75,7 @@ class Board(object):
         moves = 0
         for u in self.listunits():
             moves+=u.move(board)
-        self.update()
+            self.update()
         return moves
 
     def attack(self):
@@ -169,7 +172,13 @@ class Visitors(object):
 
     def put(self, pos, dist, kind, unit, path):
        try:
-           self.positions[pos] = VNode(dist, kind, unit, sortpaths(path, self.positions[pos].path)[0])
+           node = self.positions[pos]
+           if node.dist == dist:
+              node = VNode(dist, kind, unit, sortpaths(path, self.positions[pos].path)[0])
+           else:
+              node = VNode(dist, kind, unit, path)
+           self.positions[pos] = node
+           
        except KeyError:
            self.positions[pos] = VNode(dist, kind, unit, path)
 
