@@ -7,6 +7,12 @@ import re
 import doctest
 from collections import defaultdict
 
+DIRECTIONS = ((-1, 0), (1, 0), (0, -1), (0, 1))
+MAXDIST=100000
+
+def addpos(p1, p2):
+    return (p1[0] + p2[0], p1[1] + p2[1])
+
 class Board(object):
 
     def __init__(self, grid, units):
@@ -17,16 +23,38 @@ class Board(object):
         self.reset()
 
     def get(self, pos):
+        '''
+            Returns (E|G|.|#,Unit)
+        '''
         try:
-            return self.unitdict[pos].type
+            return (self.unitdict[pos].type, self.unitdict[pos])
         except KeyError:
-            return self.grid[pos[1]][pos[0]]
+            return (self.grid[pos[1]][pos[0]], None)
 
     def reset(self):
         self.unitdict = dict((u.pos, u) for u in self.units)
 
+    def visit(self, visitors, criteria, pos, dist=0, maxdist=MAXDIST):
+        if dist > maxdist:
+           return visitors
+  
+        # if dist == 0, ignore the current position
+        if dist > 0:
+            at = self.get(pos)
+            if not criteria(at):
+                return visitors
+
+            if visitors.distance(pos) <= dist:
+               return visitors
+
+            visitors.put(pos, dist, at)
+
+        for d in DIRECTIONS:
+            self.visit(visitors, criteria, addpos(pos, d), dist+1, maxdist-1)
+        return visitors
+
     def row(self, y):
-        return ''.join(self.get((x, y)) for x in xrange(self.width))
+        return ''.join(self.get((x, y))[0] for x in xrange(self.width))
 
     def __repr__(self):
         return '\n'.join(board.row(y) for y in xrange(self.height))
@@ -39,6 +67,7 @@ class Unit(object):
         '''
         self.pos = (x, y)
         self.type = t
+        self.seek = 'G' if t == 'E' else 'E'
         self.points = points
         self.apower = apower
 
@@ -47,6 +76,8 @@ class Unit(object):
         '''
             Move the unit in the board.  Returns 0 = no moves, 1 a move possible
         '''
+        visitors = board.visit(Visitors(), lambda c: c[0] in ('.', self.seek), self.pos)
+        pprint.pprint(visitors.positions)
         return 0
 
     def attack(self, board):
@@ -55,6 +86,23 @@ class Unit(object):
         '''
         pass
 
+    def __repr__(self):
+        return "%s(%2d,%2d,pnt=%d,pwr=%d)" % (self.type, self.pos[0], self.pos[1], self.points, self.apower)
+
+class Visitors(object):
+
+    def __init__(self):
+       self.positions = {}
+
+    def put(self, pos, dist, at):
+       self.positions[pos] = (dist, at)
+
+    def distance(self, pos):
+       try:
+           return self.positions[pos][0]
+       except KeyError:
+           return MAXDIST
+       
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
