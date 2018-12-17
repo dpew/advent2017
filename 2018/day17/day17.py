@@ -26,11 +26,23 @@ class Water(object):
         self.min = (min(x, self.min[0]), min(y, self.min[1]))
         self.max = (max(x, self.max[0]), max(y, self.max[1]))
 
-    def fill(self, pos, direction='D'):
-        #print self
-        if self.seen[pos]:
-            raise "BULLSHIT"
-        #print pos, direction, self.seen[pos]
+    def fill(self, pos, fillwith='|', direction=DOWN):
+        hit = self[pos]
+        if hit == '#':
+           return True
+        if not hit:
+           return False
+        if hit != '.':
+           return hit == '~'
+
+        if self.fill(addpos(DOWN, pos)):
+           left, right = addpos(LEFT, pos), addpos(RIGHT, pos)
+           if self.tryfill(left, LEFT) and self.tryfill(right, RIGHT):
+               self.fill(
+        
+        if self[pos] == '#':
+            return True
+        if self[pos] == 
         self.seen[pos] = True
         hit = self[pos]
         if not hit:
@@ -41,10 +53,13 @@ class Water(object):
 
         if hit == '.':
            self.water[pos] = '|'
-         
+
+           if self.fill(addpos(DOWN, pos)):
+                   
+              
+
            down = addpos(DOWN, pos)
-           if self.seen[down] or self.fill(down):
-              left, right = addpos(LEFT, pos), addpos(RIGHT, pos)
+           if (self.seen[down] and self[down] in ('~', '#')) or self.fill(down):
               full = True
               if not self.seen[left]:
                  full = self.fill(left, 'L') and full
@@ -59,6 +74,18 @@ class Water(object):
 
         #print "HERE", hit, self.water[pos]
         return False
+
+    def tryfill(self, pos, direction):
+        while True:
+           at = self[pos]
+           if at == '#':
+              return True
+           if at != '.':
+              return False
+           if self[addpos(pos, DOWN)] not in ('~', '#'):
+               return False
+           pos = addpos(pos, direction)
+ 
 
     def __getitem__(self, pos):
         if pos[0] < self.min[0] or pos[0] > self.max[0]:
