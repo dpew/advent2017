@@ -1,0 +1,9 @@
+part 2: 691 too low
+part 2: 924 too low
+part 2: 927 wrong
+part 2: 925 wrong
+part 2: 744 (Reversed) wrong
+part 2: 8675 ALL ROOMS!
+part 2: 9989 ALL ROOMS! (got mindist wrong, set to 10)
+part 2: 8675 darn! I guessed it twice!  Did I not change the code
+
