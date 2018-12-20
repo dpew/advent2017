@@ -50,10 +50,12 @@ def navigate(path):
            paths = [[]]
            i += 1
        elif p == ')':
-           return paths, i+1
+           break
        else:
            i += 1
-   return paths, i+1
+   allpaths.extend(paths)
+   return allpaths, i+1
+   
 
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
@@ -65,6 +67,8 @@ with open(sys.argv[1]) as f:
     path = f.readline()
 
     paths, seen = navigate(path)
+    p2 = [ ''.join(p) for p in paths ]
+    pprint.pprint(p2)
     minpath = min(paths, key=lambda p: measure(p)) 
     #print paths
     #print max(measure(p) for p in paths) 
