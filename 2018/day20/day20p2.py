@@ -244,7 +244,11 @@ with open(sys.argv[1]) as f:
     print m
     print m.render(maxpath)
     print m.render(*shortpaths)
-    limited = [ s for s in set(shortpaths) if len(s) >= 1000 ]
+    shortpaths = list(set(shortpaths))
+
+    pprint.pprint(sorted((len(x), x) for x in shortpaths))
+
+    limited = [ s for s in set(shortpaths) if len(s) > 1000 ]
     print m.render(*limited)
     print 'RESULT', len(maxpath), ''.join(maxpath)
     count = sum(1 if len(x) >= 1000 else 0 for x in shortpaths)
