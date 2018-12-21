@@ -21,6 +21,49 @@ DIRS={
    'E': RIGHT
 }
 
+class Maze(object):
+
+    def __init__(self, path=[]):
+        self.min = (100, 100)
+        self.max = (-100, -100)
+        self.connections = set()
+        self.addpath(path)
+
+    def addpath(self, path):
+        pos=(0, 0)
+        for p in path:
+            newpos = addpos(pos, DIRS[p])
+            self.adddoor(pos, newpos)
+            pos = newpos
+
+    def adddoor(self, p1, p2):
+        self.min = (min(self.min[0], p1[0], p2[0]), min(self.min[1], p1[1], p2[1]))
+        self.max = (max(self.max[0], p1[0], p2[0]), max(self.max[1], p1[1], p2[1]))
+        self.connections.add(tuple(sorted([p1, p2])))
+
+    def doorat(self, p1, p2):
+        c = tuple(sorted([p1, p2]))
+        return c in self.connections
+
+    def __repr__(self):
+        out = ''
+        for y in range(self.min[1], self.max[1] + 1):
+            out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
+                                  for x in range(self.min[0], self.max[0]+1)) + '#'
+            out += '\n'
+            row = '.'.join('|' if self.doorat((x, y), addpos((x, y), LEFT)) else '#'
+                                    for x in range(self.min[0], self.max[0]+2))
+            if y == 0:
+                pos = (0 - self.min[0] + 1) * 2
+                row = row[:pos-1] + 'X' + row[pos:]
+            out += row
+            out += '\n'
+        y+=1
+        out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
+                                  for x in range(self.min[0], self.max[0]+1)) + '#'
+        out += '\n'
+        return out
+
 def navigate(path):
    allpaths = []
    paths = [[]]
@@ -40,7 +83,7 @@ def navigate(path):
            mx = max(len(c) for c in children)
            for mypath in paths:
              for c in children:
-               if len(c) >= mx:
+               if len(c) > 0:
                   newpath = list(mypath)
                   newpath.extend(c)
                   newpaths.append(newpath)
@@ -75,14 +118,32 @@ def distance(p1, p2):
         3
     '''
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+    
+
+def shorten(path):
+    '''
+        >>> shorten('')
+        foo
+    '''
+    result=[]
+    seen=[]
+    pass
+
 
 with open(sys.argv[1]) as f:
     path = f.readline()
 
+    m = Maze()
     paths, seen = navigate(path)
+    for p in paths:
+        m.addpath(p)
+
+    print m
     p2 = [ ''.join(p) for p in paths ]
     pprint.pprint(p2)
     minpath = min(paths, key=lambda p: distance((0, 0), measure(p))) 
+    for p in paths:
+        print distance((0, 0), measure(p)), ''.join(p) 
     #print paths
     #print max(measure(p) for p in paths) 
     print len(minpath), ''.join(minpath)

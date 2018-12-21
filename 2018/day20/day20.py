@@ -5,6 +5,7 @@ import math
 import pprint
 import re
 import doctest
+import itertools
 from collections import defaultdict
 from functools import reduce
 
@@ -21,38 +22,118 @@ DIRS={
    'E': RIGHT
 }
 
+class Maze(object):
+
+    def __init__(self, path=[]):
+        self.min = (100, 100)
+        self.max = (-100, -100)
+        self.connections = set()
+        self.addpath(path)
+
+    def addpath(self, path):
+        pos=(0, 0)
+        for p in path:
+            newpos = addpos(pos, DIRS[p])
+            self.adddoor(pos, newpos)
+            pos = newpos
+
+    def adddoor(self, p1, p2):
+        self.min = (min(self.min[0], p1[0], p2[0]), min(self.min[1], p1[1], p2[1]))
+        self.max = (max(self.max[0], p1[0], p2[0]), max(self.max[1], p1[1], p2[1]))
+        self.connections.add(tuple(sorted([p1, p2])))
+
+    def doorat(self, p1, p2):
+        c = tuple(sorted([p1, p2]))
+        return c in self.connections
+
+    def __repr__(self):
+        out = ''
+        for y in range(self.min[1], self.max[1] + 1):
+            out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
+                                  for x in range(self.min[0], self.max[0]+1)) + '#'
+            out += '\n'
+            row = '.'.join('|' if self.doorat((x, y), addpos((x, y), LEFT)) else '#'
+                                    for x in range(self.min[0], self.max[0]+2))
+            if y == 0:
+                pos = (0 - self.min[0] + 1) * 2
+                row = row[:pos-1] + 'X' + row[pos:]
+            out += row
+            out += '\n'
+        y+=1
+        out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
+                                  for x in range(self.min[0], self.max[0]+1)) + '#'
+        out += '\n'
+        return out
+
+    def render(self, path):
+        out = ''
+        positions=pathToDict(path)
+        for y in range(self.min[1], self.max[1] + 1):
+            out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
+                                  for x in range(self.min[0], self.max[0]+1)) + '#'
+            out += '\n'
+            row = ''.join('|' if self.doorat((x, y), addpos((x, y), LEFT)) else '#'
+                                    for x in range(self.min[0], self.max[0]+2))
+            paths = ''.join(positions[(x, y)] if (x, y) in positions else '.'
+                                    for x in range(self.min[0], self.max[0]+2)) 
+            row = ''.join(itertools.chain(*zip(row, paths)))
+            if y == 0:
+                pos = (0 - self.min[0] + 1) * 2
+                row = row[:pos-1] + 'X' + row[pos:]
+            out += row
+            out += '\n'
+        y+=1
+        out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
+                                  for x in range(self.min[0], self.max[0]+1)) + '#'
+        out += '\n'
+        return out
+
 def navigate(path):
-   paths = []
-   mypath = []
-   paths.append(mypath)
+   allpaths = []
+   paths = [[]]
    i, ln = 0, len(path)
    while i < ln:
        p = path[i]
-       print p, i, paths
+       # print p, i, paths
        if p in DIRS.keys():
-           mypath.append(p)
+           for mypath in paths:
+              mypath.append(p)
            i += 1
        elif p == '(':
-           paths.pop()
+           newpaths = []
            children, seen = navigate(path[i+1:])
-           print seen
+           # print seen
            i  = i + seen + 1
            mx = max(len(c) for c in children)
-           for c in children:
-               if len(c) < mx:
-                   continue
-               newpath = list(mypath)
-               newpath.extend(c)
-               paths.append(newpath)
+           for mypath in paths:
+             for c in children:
+               if len(c) > 0:
+                  newpath = list(mypath)
+                  newpath.extend(c)
+                  newpaths.append(newpath)
+           paths = newpaths
        elif p == '|':
-           mypath = []
-           paths.append(mypath)
+           allpaths.extend(paths)
+           paths = [[]]
            i += 1
        elif p == ')':
-           return paths, i+1
+           break
        else:
            i += 1
-   return paths, i+1
+   allpaths.extend(paths)
+   return allpaths, i+1
+
+def pathToDict(path):
+   positions={}
+   pos=(0,0)
+   positions[pos] = path[0]
+   for p in path:
+      pos = addpos(pos, DIRS[p])
+      positions[pos] = p
+      #pos = newpos
+   positions[pos] = 'x'
+   return positions
+   
 
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
@@ -60,11 +141,78 @@ def addpos(p1, p2):
 def measure(path):
     return reduce(addpos, (DIRS[p] for p in path))
 
+def distance(p1, p2):
+    '''
+        >>> distance((8, 9), (8, 9))
+        0
+        >>> distance((8, 9), (9, 9))
+        1
+        >>> distance((8, 9), (9, 10))
+        2
+        >>> distance((8, 9), (9, 7))
+        3
+    '''
+    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+    
+
+def shorten(path):
+    '''
+        >>> shorten('NSEW')
+        ''
+        >>> shorten('NSEWE')
+        'E'
+        >>> shorten('NNSEWE')
+        'NE'
+        >>> shorten('ENNWSWWNEWSSSSEENWNSEEESWENNNN')
+        'ENNWSWWSSSEENEENNN'
+    '''
+    result=[]
+    pos = (0, 0)
+    seen=[pos]
+    for p in path:
+       newpos = addpos(pos, DIRS[p])
+       #print "BEFORE %s->%s %s %s " % (pos, newpos, ''.join(result) + p, seen)
+       try:
+          index = seen.index(newpos)
+       #   print "MATCH"
+          newpos = seen[index]
+          result = result[:index] 
+          seen = seen[:index+1]
+       except ValueError:
+          result.append(p)
+          seen.append(newpos)
+       #print "AFTER  %s->%s %s %s " % (pos, newpos, ''.join(result), seen)
+       pos = newpos
+    return ''.join(result)
+        
+
+if len(sys.argv) < 2:
+    import doctest
+    doctest.testmod()
+    sys.exit(3)
+
 with open(sys.argv[1]) as f:
     path = f.readline()
 
+    m = Maze()
     paths, seen = navigate(path)
-    minpath = min(paths, key=lambda p: measure(p)) 
+    for p in paths:
+        m.addpath(p)
+
+    shortpaths = [ shorten(p) for p in paths ]
+    maxpath = max(shortpaths, key=len)
+    print path
+    print m
+    print m.render(maxpath)
+    print 'RESULT', len(maxpath), ''.join(maxpath)
+    count = sum(1 if len(x) >= 1000 else 0 for x in set(shortpaths))
+    print "ROOMS above 1000", count
+    sys.exit(0)
+    p2 = [ ''.join(p) for p in paths ]
+    pprint.pprint(p2)
+    minpath = min(paths, key=lambda p: distance((0, 0), measure(p))) 
+    for p in paths:
+        print distance((0, 0), measure(p)), ''.join(p) 
     #print paths
     #print max(measure(p) for p in paths) 
     print len(minpath), ''.join(minpath)
