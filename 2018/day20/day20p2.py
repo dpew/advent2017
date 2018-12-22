@@ -21,8 +21,34 @@ DIRS={
    'W': LEFT,
    'E': RIGHT
 }
+class bcolors:
+    # Foreground:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    PURPLE = '\033[95m'
+    # Formatting
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'    
+    # End colored text
+    ENDC = '\033[0m'
+    NC ='\x1b[0m' # No Color
+
 
 class Maze(object):
+
+    NEWLINE = '\n'
+    WALL = bcolors.BLUE + '#' + bcolors.ENDC
+    HDOOR = bcolors.PURPLE + '=' + bcolors.ENDC
+    VDOOR = bcolors.PURPLE + '|' + bcolors.ENDC
+    VISIT = bcolors.YELLOW + 'X' + bcolors.ENDC
+    VISIT_HDOOR = bcolors.YELLOW + '=' + bcolors.ENDC
+    VISIT_VDOOR = bcolors.YELLOW + '|' + bcolors.ENDC
+    NO_VISIT = bcolors.PURPLE + '?' + bcolors.ENDC
+    ROOM = bcolors.RED + '*' + bcolors.ENDC
+    START = bcolors.RED + 'X' + bcolors.ENDC
+
 
     def __init__(self, path=[]):
         self.min = (100, 100)
@@ -40,11 +66,10 @@ class Maze(object):
     def adddoor(self, p1, p2):
         self.min = (min(self.min[0], p1[0], p2[0]), min(self.min[1], p1[1], p2[1]))
         self.max = (max(self.max[0], p1[0], p2[0]), max(self.max[1], p1[1], p2[1]))
-        self.connections.add(tuple(sorted([p1, p2])))
+        self.connections.add(between(p1, p2))
 
     def doorat(self, p1, p2):
-        c = tuple(sorted([p1, p2]))
-        return c in self.connections
+        return between(p1, p2) in self.connections
 
     def __repr__(self):
         out = ''
@@ -70,24 +95,27 @@ class Maze(object):
         positions = {}
         for p in paths:
             positions.update(pathToDict(p))
+
+        vdoor = lambda p: self.VISIT_VDOOR if between(p, addpos(p, LEFT)) in positions else self.VDOOR
+        hdoor = lambda p: self.VISIT_HDOOR if between(p, addpos(p, UP)) in positions else self.HDOOR
+
         for y in range(self.min[1], self.max[1] + 1):
-            out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
-                                  for x in range(self.min[0], self.max[0]+1)) + '#'
-            out += '\n'
-            row = ''.join('|' if self.doorat((x, y), addpos((x, y), LEFT)) else '#'
-                                    for x in range(self.min[0], self.max[0]+2))
-            paths = ''.join(positions[(x, y)] if (x, y) in positions else '.'
-                                    for x in range(self.min[0], self.max[0]+2)) 
-            row = ''.join(itertools.chain(*zip(row, paths)))
+            out += self.WALL + self.WALL.join(hdoor((x, y)) if self.doorat((x, y), addpos((x, y), UP)) else self.WALL
+                                  for x in range(self.min[0], self.max[0]+1)) + self.WALL
+            out += self.NEWLINE
+            row = [vdoor((x, y)) if self.doorat((x, y), addpos((x, y), LEFT)) else self.WALL
+                                    for x in range(self.min[0], self.max[0]+2)]
+            paths = [positions[(x, y)] if (x, y) in positions else self.NO_VISIT
+                                    for x in range(self.min[0], self.max[0]+2)] 
             if y == 0:
-                pos = (0 - self.min[0] + 1) * 2
-                row = row[:pos-1] + 'X' + row[pos:]
+                paths[0 - self.min[0]] = self.START
+            row = ''.join(itertools.chain(*zip(row, paths)))
             out += row
-            out += '\n'
+            out += self.NEWLINE
         y+=1
-        out += '#' + '#'.join('-' if self.doorat((x, y), addpos((x, y), UP)) else '#'
-                                  for x in range(self.min[0], self.max[0]+1)) + '#'
-        out += '\n'
+        out += self.WALL + self.WALL.join(self.HDOOR if self.doorat((x, y), addpos((x, y), UP)) else self.WALL
+                                  for x in range(self.min[0], self.max[0]+1)) + self.WALL
+        out += self.NEWLINE
         return out
 
 def navigate(path):
@@ -125,17 +153,26 @@ def navigate(path):
    allpaths.extend(paths)
    return allpaths, i+1
 
+def between(p1, p2):
+   '''
+      >>> between((0, 0), (1, 1))
+      (5, 5)
+      >>> between((-2, 2), (-3, 3))
+      (-25, 25)
+   ''' 
+   return (5000 * (p1[0] + p2[0]), 5000 * (p1[1] + p2[1]))
+
 def pathToDict(path):
    positions={}
    pos=(0,0)
    positions[pos] = path[0]
    for p in path:
-      pos = addpos(pos, DIRS[p])
-      positions[pos] = p
-      #pos = newpos
-   positions[pos] = 'x'
+      newpos = addpos(pos, DIRS[p])
+      positions[newpos] = Maze.VISIT
+      positions[between(pos, newpos)] = Maze.VISIT_HDOOR if p in ('U', 'D') else Maze.VISIT_VDOOR
+      pos = newpos
+   positions[pos] = Maze.ROOM
    return positions
-   
 
 def addpos(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1])
@@ -196,7 +233,7 @@ def splitpaths(path):
         >>> list(splitpaths('NNSEWW'))
         ['NN', 'NE', 'NW']
         >>> list(splitpaths('ENNWSWWNEWSSSSEENWNSEEESWENNNN'))
-        ['ENNWSWWNE', 'ENNWSWWSSSEENWN', 'ENNWSWWSSSEENEENNN']
+        ['ENNWSWWNE', 'ENNWSWWSSSEENWN', 'ENNWSWWSSSEENEESW', 'ENNWSWWSSSEENEENNN']
     '''
     result=[]
     pos = (0, 0)
@@ -230,6 +267,8 @@ if len(sys.argv) < 2:
     doctest.testmod()
     sys.exit(3)
 
+print bcolors.RED + "THIS IS RED " + bcolors.ENDC + bcolors.BLUE + "WHATEVER" + bcolors.ENDC
+
 with open(sys.argv[1]) as f:
     path = f.readline()
 
@@ -246,7 +285,7 @@ with open(sys.argv[1]) as f:
     print m.render(*shortpaths)
     shortpaths = list(set(shortpaths))
 
-    pprint.pprint(sorted((len(x), x) for x in shortpaths))
+    #pprint.pprint(sorted((len(x), x) for x in shortpaths))
 
     limited = [ s for s in set(shortpaths) if len(s) > 1000 ]
     print m.render(*limited)
