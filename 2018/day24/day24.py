@@ -28,8 +28,11 @@ class Army(object):
 class Group(object):
 
     def __init__(self, unit, count):
-        self.units = unit
-        self.count = count
+        self.unit = unit
+        self.count = int(count)
+
+    def __repr__(self):
+       return "%d units each with %s" % (self.count, self.unit)
 
 class Unit(object):
 
@@ -42,49 +45,59 @@ class Unit(object):
         self.immunities = []
 
     def add_immunity(self, immunity):
-        self.immunities.add(immunity)
+        self.immunities.append(immunity)
 
     def add_weakness(self, weakness):
-        self.weakness.add(weakness)
+        self.weakness.append(weakness)
 
     def __repr__(self):
         ims = []
         a = ", ".join(self.weakness)
         if a:
-            ims.add("weak to " + a)
+            ims.append("weak to " + a)
         a = ", ".join(self.immunities)
         if a:
-            ims.add("immune to " + a)
-        a = ";".join(ims)
+            ims.append("immune to " + a)
+        a = "; ".join(ims)
         if a:
-           a = "(" + a + ")"
+           a = "(" + a + ") "
         
         return \
-          "$d hit points %s with an attack that does %d %s damage at initiative %d" % \
+          "%d hit points %swith an attack that does %d %s damage at initiative %d" % \
          (self.hitpoints,
           a,
           self.attackdamage,
-          self.self.attacktype,
+          self.attacktype,
           self.initiative)
 
 def parseline(line):
     '''
         >>> parseline('1767 units each with 5757 hit points (weak to fire, radiation) with an attack that does 27 radiation damage at initiative 4')
-        '1767 units each with 5757 hit points (weak to fire, radiation) with an attack that does 27 radiation damage at initiative 4'
+        1767 units each with 5757 hit points (weak to fire, radiation) with an attack that does 27 radiation damage at initiative 4
         >>> parseline('442 units each with 1918 hit points with an attack that does 35 fire damage at initiative 8')
-        '442 units each with 1918 hit points with an attack that does 35 fire damage at initiative 8'
+        442 units each with 1918 hit points with an attack that does 35 fire damage at initiative 8
         >>> parseline('4378 units each with 32200 hit points (weak to cold) with an attack that does 10 bludgeoning damage at initiative 2')
-        '4378 units each with 32200 hit points (weak to cold) with an attack that does 10 bludgeoning damage at initiative 2'
+        4378 units each with 32200 hit points (weak to cold) with an attack that does 10 bludgeoning damage at initiative 2
+        >>> parseline('4378 units each with 32200 hit points (weak to cold) with an attack that does 10 bludgeoning damage at initiative 2')
+        4378 units each with 32200 hit points (weak to cold) with an attack that does 10 bludgeoning damage at initiative 2
+        >>> parseline('1380 units each with 20450 hit points (weak to slashing, radiation; immune to bludgeoning, fire) with an attack that does 28 cold damage at initiative 12')
+        1380 units each with 20450 hit points (weak to slashing, radiation; immune to bludgeoning, fire) with an attack that does 28 cold damage at initiative 12
     '''
-    data = tokeninze(line, "()")
+    data = list(tokenize(line, "()"))
     weak = ""
     if len(data) > 1:
-        line = data[0] + data[2]
         weak = data[1]
-    data = tokeninze(line, ' ')
-    u = Unit(data[4], data[6], data[7], data[11])
-    for 
-    return line
+        line = data[0] + data[2]
+    data = line.split()
+    u = Unit(data[4], data[12], data[13], data[17])
+    g = Group(u, int(data[0]))
+
+    for w in tokenize(weak, ';'):
+        vals = list(tokenize(w, ' ,'))
+        addfunc = u.add_immunity if vals[0] == 'immune' else u.add_weakness
+        for v in vals[2:]: 
+            addfunc(v)
+    return g
 
 if len(sys.argv) < 2:
     import doctest
@@ -95,16 +108,12 @@ immune = Army()
 infection = Army()
 
 with open(sys.argv[1]) as f:
+    curarmy = immune
     for line in f.readlines():
-         
-        
-            
-    
-    line = ty
-    nanobots = []
-    for l in f.readlines():
-        nanobots.append(tuple(int(t) for t in tokenize(l, 'pos=<>, r=')))
+       if line.startswith("Immune"):
+          curarmy = immune
+       elif line.startswith("Infection"):
+          curarmy = infection
+       elif not line.strip():
+          curarmy.add(parseline(line))
 
-maxnano = max(nanobots, key=lambda k: k[3])
-print sum(1 if mdistance(maxnano[:3], n[:3]) <= maxnano[3] else 0 for n in nanobots)
-#pprint.pprint(nanobots)
