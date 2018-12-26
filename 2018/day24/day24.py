@@ -26,22 +26,24 @@ class Army(object):
         self.groups.append(unit)
 
     def choose_targets(self, army):
-        targets = list(army.groups) 
+        targets = list(filter(lambda g: g.alive, army.groups)) 
         chosen = []
         for g in sorted(self.groups, key=lambda s: s.effective_power, reverse=True):
-            if targets:
+            if targets and g.alive:
                 target = g.choose_attack(targets)
                 chosen.append((g, target))
                 targets.remove(target)
+        for attacker, defender in chosen:
+           print "%s would deal %s %d points" % (attacker.name, defender.name, defender.effectiveness(attacker.unit.attacktype, attacker.effective_power))
         return chosen
 
     def size(self):
-         return sum(1 if g.alive else 0 for g in self.groups)
+         return sum(g.effective_units for g in self.groups)
 
     def __repr__(self):
         r = ""
         r = []
-        return '\n'.join("Group %d: %d units %d damage, %d effective_power" % (e, g.effective_units, g.damage, g.effective_power)
+        return '\n'.join("Group %d: %d units, %d effective_power" % (e, g.effective_units, g.effective_power)
                          for e, g in enumerate(self.groups))
 
 class Group(object):
@@ -50,7 +52,7 @@ class Group(object):
         self.name = "Group"
         self.unit = unit
         self.count = int(count)
-        self.damage = 0
+        self.damageunits = 0
         self.alive = True
 
     @property
@@ -59,7 +61,7 @@ class Group(object):
 
     @property
     def effective_units(self):
-        return max(0, self.count - self.damage/self.unit.hitpoints)
+        return max(0, self.count - self.damageunits)
 
     def choose_attack(self, groups):
         if groups:
@@ -67,7 +69,7 @@ class Group(object):
         raise ValueError("No groups")
 
     def vulnerable_key(self, group):
-        return (group.effectiveness(self.unit.attacktype, self.unit.attackdamage), group.effective_power, group.unit.initiative)
+        return (group.effectiveness(self.unit.attacktype, self.effective_power), group.effective_power, group.unit.initiative)
 
     def effectiveness(self, attacktype, points): 
         '''
@@ -81,8 +83,9 @@ class Group(object):
         return points * vi
 
     def attack(self, damage):
-        self.damage += damage
-        self.alive = self.damage < (self.unit.hitpoints * self.count)
+        damageunits = damage / self.unit.hitpoints
+        self.damageunits += damageunits
+        self.alive = self.damageunits < self.count
 
     def __repr__(self):
        return "%d units each with %s" % (self.count, self.unit)
@@ -177,15 +180,16 @@ for e, g in enumerate(infection.groups):
 
    
 while immune.size() > 0 and infection.size() > 0:
-    print immune.size(), infection.size()
+    print "CHOSING"
     chosen = immune.choose_targets(infection)
     chosen.extend(infection.choose_targets(immune))
    
+    print "ATTACKING"
     for attacker, defender in sorted(chosen, key=lambda g: g[0].unit.initiative, reverse=True):
         units = defender.effective_units
         defender.attack(defender.effectiveness(attacker.unit.attacktype, attacker.effective_power))
         units = units - defender.effective_units 
         print "%s attacks %s killing %d units" % (attacker.name, defender.name, units)
 
-print "Immune\n", immune
-print "Infection\n", infection
+print "Immune %d\n%s" % (immune.size(), immune)
+print "Infect %d\n%s" % (infection.size(), infection)
