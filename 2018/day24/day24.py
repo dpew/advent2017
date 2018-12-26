@@ -23,7 +23,7 @@ class Army(object):
         self.groups = []
 
     def add(self, unit):
-        self.groups.add(unit)
+        self.groups.append(unit)
 
 class Group(object):
 
@@ -114,6 +114,6 @@ with open(sys.argv[1]) as f:
           curarmy = immune
        elif line.startswith("Infection"):
           curarmy = infection
-       elif not line.strip():
+       elif line.strip():
           curarmy.add(parseline(line))
 
